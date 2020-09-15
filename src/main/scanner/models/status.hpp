@@ -9,17 +9,16 @@ namespace scanner {
         int code;
     };
 
+    void to_json(nlohmann::json& j, const jstatus& data);
+    void from_json(const nlohmann::json& j, jstatus& data);
+
     class status {
         private:
             std::string _desc;
-
-            void to_json(nlohmann::json& j, const jstatus& data);
-            void from_json(const nlohmann::json& j, jstatus& data);
-
         public:
-            status_code code;
+            int code;
 
-            status(INT _code, std::string desc);
+            status(int _code, std::string desc);
             std::string desc();
             std::string json();
     };

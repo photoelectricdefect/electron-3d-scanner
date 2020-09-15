@@ -1,11 +1,11 @@
-#include <status.hpp>
+#include <models/status.hpp>
 
 namespace scanner {
-    void status::to_json(nlohmann::json& j, const jstatus& data) {
+    void to_json(nlohmann::json& j, const jstatus& data) {
         j = nlohmann::json{{ "desc", data.desc }, { "code", data.code }};
     }
 
-    void status::from_json(const nlohmann::json& j, jstatus& data) {
+    void from_json(const nlohmann::json& j, jstatus& data) {
         j.at("desc").get_to(data.desc);
         j.at("code").get_to(data.code);
     }

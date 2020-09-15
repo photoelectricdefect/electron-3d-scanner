@@ -1,6 +1,5 @@
 #include <models/polygon.hpp>
 
-namespace scanner {
         polygon::polygon(const std::vector<Eigen::Vector2f>& _vertices) {
             vertices = _vertices;
 
@@ -43,4 +42,3 @@ namespace scanner {
 
 	        return polygon(vertices_tr);
 		}
-}

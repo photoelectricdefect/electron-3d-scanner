@@ -1,13 +1,13 @@
-#include <err.hpp>
+#include <models/err.hpp>
 
 namespace scanner {
-void settings::to_json(nlohmann::json& j, const jerror& data) {
-    j = nlohmann::json{{ "msg", data.msg }};
-}
+    void to_json(nlohmann::json& j, const jerror& data) {
+        j = nlohmann::json{{ "msg", data.msg }};
+    }
 
-void settings::from_json(const nlohmann::json& j, jerror& data) {
-    j.at("msg").get_to(data.msg);
-}
+    void from_json(const nlohmann::json& j, jerror& data) {
+        j.at("msg").get_to(data.msg);
+    }
 
             err::err(std::string msg) {
                 _msg = msg;

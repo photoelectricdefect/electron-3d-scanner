@@ -3,7 +3,6 @@
 
 #include <Eigen/Dense>
 
-namespace scanner {
 class rectangle {
     public:
         Eigen::Vector2f UL, BR;
@@ -12,6 +11,5 @@ class rectangle {
         rectangle(const Eigen::Vector2f& ul, const Eigen::Vector2f& br);
         rectangle translate(const Eigen::Vector2f& r0);      
 };
-}
 
 #endif

@@ -1,4 +1,6 @@
-#include <string>
+#ifndef COMMAND_H_
+#define COMMAND_H_
+
 #include <json.hpp>
 
 namespace scanner {
@@ -14,7 +16,7 @@ namespace scanner {
     struct jcommand {
         int code;
     };
-
+    
     void to_json(nlohmann::json& j, const jcommand& data);
     void from_json(const nlohmann::json& j, jcommand& data);
 
@@ -25,3 +27,5 @@ namespace scanner {
             command(jcommand jcomm);
     };
 }
+
+#endif

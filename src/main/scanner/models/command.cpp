@@ -1,11 +1,11 @@
-#include <command.hpp>
-
+#include <models/command.hpp>
+    
 namespace scanner {
-    void command::to_json(nlohmann::json& j, const jcommand& data) {
+    void to_json(nlohmann::json& j, const jcommand& data) {
         j = nlohmann::json{{ "code", data.code }};
     }
 
-    void command::from_json(const nlohmann::json& j, jcommand& data) {
+    void from_json(const nlohmann::json& j, jcommand& data) {
         j.at("code").get_to(data.code);
     }
 

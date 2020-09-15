@@ -1,12 +1,15 @@
+#include <models/config.hpp>
+
 namespace scanner {
-    void config::to_json(nlohmann::json& j, const calib_data& data) {
+    void to_json(nlohmann::json& j, const calib_data& data) {
         j = nlohmann::json{{ "K", data.K }, { "D", data.D }};
     }
 
-    void config::from_json(const nlohmann::json& j, calib_data& data) {
+    void from_json(const nlohmann::json& j, calib_data& data) {
         j.at("K").get_to(data.K);
         j.at("D").get_to(data.D);
     }
+
 
 void config::save_calib(const cv::Mat& K, const cv::Mat& D) {
     std::vector<double> _K, _D;

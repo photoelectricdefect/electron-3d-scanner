@@ -3,8 +3,8 @@
 
 #include <models/rectangle.hpp>
 #include <Eigen/Dense>
+#include <models/line_segment.hpp>
 
-namespace scanner {
 class polygon {
     public:
         std::vector<line_segment> sides;
@@ -14,6 +14,5 @@ class polygon {
         rectangle frame();
 		polygon translate(const Eigen::Vector2f& r0);
 };
-}
 
 #endif

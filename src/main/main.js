@@ -1,7 +1,7 @@
 'use strict'
 
 const { app, BrowserWindow, ipcMain, ipcRenderer } = require('electron');
-const scannerapi = require("bindings")("scanner");
+const scanner = require("bindings")("scanner");
 
 let index;
 
@@ -10,7 +10,19 @@ const events =  {
   imupdate: "imupdate",
   videostart: "videostart",
   videostop: "videostop",
-  error: "error"
+  error: "error",
+  iostart: "iostart",
+  iostop: "iostop"
+};
+
+const commands =  {
+  iostart: 0,
+  iostop: 1,
+  videostart: 2,
+  videostop: 3,
+  scan: 4,
+  loadmodel: 5,
+  setprop: 6
 };
 
 const openIndex =  () => {
@@ -29,29 +41,37 @@ const openIndex =  () => {
 app.whenReady().then(openIndex).then(() => {
   index.webContents.on("did-finish-load", () => {
     //remove later
-    scannerapi.addListener(events.imupdate, (base64) => {
+    scanner.addListener(events.imupdate, (base64) => {
       index.webContents.send(events.imupdate, base64);
     });
   
-    scannerapi.addListener(events.videostart, () => {
-      scannerapi.addListener(events.imupdate, (base64) => {
+    scanner.addListener(events.videostart, () => {
+      scanner.addListener(events.imupdate, (base64) => {
         index.webContents.send(events.imupdate, base64);
       });  
     });
 
-    scannerapi.addListener(events.videostop, () => {
+    scanner.addListener(events.videostop, () => {
       index.webContents.removeListener(events.imupdate);
     });
 
-    scannerapi.addListener(events.status, (msg) => {
+    scanner.addListener(events.status, (msg) => {
     });
 
-    scannerapi.addListener(events.error, (msg) => {
+    scanner.addListener(events.error, (msg) => {
     });
 
-    scannerapi.test_imemit("/home/nejc/projects/cv/improved-ChInEsE-3d-scanner/src/assets/thomas.png");
+    scanner.addListener(events.iostart, (msg) => {
+      console.log(events.iostart);
+    });
+
+    scanner.addListener(events.iostop, (msg) => {
+      console.log(events.iostop);
+    });
+
+    scanner.sendCommand(JSON.stringify({code:commands.iostart}));    
     // setTimeout(() => {
-    //   scannerapi.test_imemit("/home/nejc/projects/cv/improved-ChInEsE-3d-scanner/src/assets/thomas.png");  
+    //   scanner.test_imemit("/home/nejc/projects/cv/improved-ChInEsE-3d-scanner/src/assets/thomas.png");  
     // }, 3000);
   });
 });

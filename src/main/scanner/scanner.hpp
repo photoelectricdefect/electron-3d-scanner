@@ -17,7 +17,7 @@ namespace scanner {
                 EV_IOSTART = "iostart",
                 EV_IOSTOP = "iostop";
 
-    class scanner  {
+    class scanner {
         private:
             bool _scanning;
             bool _calibrating;
@@ -40,8 +40,8 @@ namespace scanner {
 
             void send_command(command comm);
             void try_send_command(command comm);
-            bool isScanning();
-            bool isCalibrating();
+            bool is_scanning();
+            bool is_calibrating();
     };
 
     void stremit(std::string e, std::string msg, bool blocking);

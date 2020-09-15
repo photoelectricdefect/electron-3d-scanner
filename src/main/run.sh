@@ -1,5 +1,2 @@
-su
-node-gyp configure
-node-gyp build
-su nejc
+sudo node-gyp build
 npm start

@@ -18,6 +18,7 @@ namespace scanner {
 
             //     std::cout << "------------------------" << std::endl;
             // }
+            scanner::scanner() {};
 
             void scanner::video_start() {
                 auto fn = [](){
@@ -101,6 +102,11 @@ namespace scanner {
             }
 
 
+            void scanner::send_command(command comm) { commandq.enqueue(comm); }
+            void scanner::try_send_command(command comm) { commandq.try_enqueue(comm); }
+            bool scanner::is_scanning() { return false; }
+            bool scanner::is_calibrating() { return false; }
+
 //TODO: turn into object, sort out public/private variables etc...
 //API----------------------------------
 
@@ -127,7 +133,7 @@ void send_command(const Napi::CallbackInfo& info) {
     sc.commandq.try_enqueue(command(j.get<jcommand>()));
 }
 
-Napi::Reference<Napi::ThreadSafeFunction> stremitTSFN;
+Napi::ThreadSafeFunction stremitTSFN;
 void _stremit(const Napi::CallbackInfo& info) {
     Napi::String e = info[0].As<Napi::String>();
     Napi::String msg = info[1].As<Napi::String>();
@@ -136,15 +142,12 @@ void _stremit(const Napi::CallbackInfo& info) {
     if(it != ev_handlers.end()) it->second.Value().Call({msg});
 };
 void stremit(std::string e, std::string msg, bool blocking) {    
-    std::pair<std::string, std::string> args(e, msg);
-    
-    auto callback = []( Napi::Env env, Napi::Function jscb, std::pair<std::string, std::string>* _args) {
-      jscb.Call( { Napi::String::New(env, _args->first), Napi::String::New(env, _args->second) });
-      delete _args;
+    auto callback = [e, msg]( Napi::Env env, Napi::Function jscb) {
+      jscb.Call( { Napi::String::New(env, e), Napi::String::New(env, msg) });
     };
 
-    if(blocking) stremitTSFN.Value().BlockingCall(&args, callback);
-    else stremitTSFN.Value().NonBlockingCall(&args, callback);
+    if(blocking) stremitTSFN.BlockingCall(callback);
+    else stremitTSFN.NonBlockingCall(callback);
 }
 
 Napi::Object init(Napi::Env env, Napi::Object exports) {
@@ -155,7 +158,7 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "sendCommand"), 
                     Napi::Function::New(env, send_command));
 
-    stremitTSFN = Napi::Persistent(Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1));
+    stremitTSFN = Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1);
 
     return exports;
 }
