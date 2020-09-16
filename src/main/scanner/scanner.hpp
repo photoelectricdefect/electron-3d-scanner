@@ -1,3 +1,6 @@
+#ifndef COMMAND_SCANNER_H_
+#define COMMAND_SCANNER_H_
+
 #include <napi.h>
 #include <iostream>
 #include <boost/thread.hpp>
@@ -18,24 +21,19 @@ namespace scanner {
                 EV_IOSTOP = "iostop";
 
     class scanner {
-        private:
-            bool _scanning;
-            bool _calibrating;
-
         public:
+            bool IOalive, video_alive,
+                scanning, calibrating;
             boost::thread threadIO, thread_video;
             threadsafe_queue<command> commandq;
             
             scanner();
             //move these to their own command objects
             //--------
-            void video_start();
-            void video_stop();
             void scan_start();
             void scan_stop();
             void load_point_cloud();
             void setprop();
-            void iostart();
             //--------
 
             void send_command(command comm);
@@ -49,3 +47,5 @@ namespace scanner {
     void remove_listener(const Napi::CallbackInfo& info);
     void send_command(const Napi::CallbackInfo& info);
 }
+
+#endif

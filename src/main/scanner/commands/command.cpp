@@ -9,11 +9,15 @@ namespace scanner {
         j.at("code").get_to(data.code);
     }
 
-    command::command(int _code) {
+    command::command(scanner& ctx, int _code) {
+        _ctx = ctx;
         code = _code;
     }
 
-    command::command(jcommand jcomm) {
+    command::command(scanner& ctx, jcommand jcomm) {
+        _ctx = ctx;
         code = jcomm.code;
     }
+
+    virtual void command::execute() {};
 }

@@ -61,7 +61,6 @@ namespace scanner {
     void unlockq() {
         _mutex.unlock();       
     }
-
     };
 }
 

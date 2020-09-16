@@ -4,105 +4,28 @@
 #include <models/config.hpp>
 #include <models/cv_helpers.hpp>
 #include <models/math_helpers.hpp>
+#include <commands/command_iostart.hpp>
+#include <commands/command_iostop.hpp>
+#include <commands/command_videostart.hpp>
+#include <commands/command_videostop.hpp>
 
 //BIG TODO: rework to use scanner object as context to command objects
 namespace scanner {
-            // void list_handlers() {
-
-            //     std::map<std::string, Napi::FunctionReference>::iterator it = ev_handlers.begin();
-    
-            //     while(it != ev_handlers.end()) {
-            //         std::cout << "key: " << it->first << std::endl;
-            //         it++;
-            //     }  
-
-            //     std::cout << "------------------------" << std::endl;
-            // }
             scanner::scanner() {};
-
-            void scanner::video_start() {
-                auto fn = [](){
-                try {
-            cv::VideoCapture cap;
-	        cap.open(0);
-
-	        if (!cap.isOpened())
-	        {
-		        std::cerr << "error opening camera" << std::endl;
-		        return;
-	        }
-
-	        std::cout << "space = capture image" << std::endl;
-
-	        cv::Mat frame;
-	        bool running = true;
-
-            while(running) {
-		        boost::this_thread::interruption_point(); 
-
-                char c = cv::waitKey((int)(1000 / FPS_60));
-		        cap.read(frame);
-
-		        if (frame.empty())
-		        {
-			        std::cerr << "empty frame grabbed" << std::endl;
-			        continue;
-		        }
-        
-                stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
-            }
-
-            }
-            catch (boost::thread_interrupted&) {}
-        };
-    
-        thread_video = boost::thread{fn};
-        stremit(EV_VIDEOSTART, "", true);
-    }
-
-            void scanner::video_stop() {
-                thread_video.interrupt();
-                thread_video.join();
-                stremit(EV_VIDEOSTOP, "", true);
-            };
 
             void scanner::scan_start() {};
             void scanner::scan_stop() {};
             void scanner::load_point_cloud() {};
             void scanner::setprop() {};
 
-            void scanner::iostart() {
-                auto fn = [this]() {
-                    commandq.clear();
-                    bool running = true;
 
-                    while(running) {
-                        command comm = commandq.dequeue();
-                        //commandq.lockq();
+            void scanner::send_command(command comm) {  
+                if(comm.code == COMM_IOSTART && IOalive) return;
+                if(comm.code == COMM_IOSTOP && !IOalive) return;
 
-                        if(comm.code == COMM_VIDEOSTART) {
-                            video_start();
-                        }
-                        else if(comm.code == COMM_VIDEOSTOP) {
-                            video_stop();
-                        }
-                        else if(comm.code == COMM_IOSTOP) {
-                            video_stop();
-                            running = false;
-                        }
-
-                        //commandq.unlockq();
-                    }
-                
-                    stremit(EV_IOSTOP, "", true);
-                };
-
-                threadIO = boost::thread{fn};
-                stremit(EV_IOSTART, "", true);
+                if(comm.code == COMM_IOSTART || comm.code == COMM_IOSTOP) command.execute();
+                else commandq.enqueue(comm);
             }
-
-
-            void scanner::send_command(command comm) { commandq.enqueue(comm); }
             void scanner::try_send_command(command comm) { commandq.try_enqueue(comm); }
             bool scanner::is_scanning() { return false; }
             bool scanner::is_calibrating() { return false; }

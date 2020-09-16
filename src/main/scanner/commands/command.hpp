@@ -21,10 +21,13 @@ namespace scanner {
     void from_json(const nlohmann::json& j, jcommand& data);
 
     class command {
+        private:
+            scanner _ctx;
         public:
             int code;     
-            command(int _code);
-            command(jcommand jcomm);
+            command(scanner& ctx, int _code);
+            command(scanner& ctx, jcommand jcomm);
+            virtual void execute();
     };
 }
 
