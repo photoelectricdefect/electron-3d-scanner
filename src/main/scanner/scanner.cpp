@@ -1,40 +1,83 @@
 #include <scanner.hpp>
-#include <opencv2/videoio.hpp>
 #include <base64.h>
 #include <models/config.hpp>
-#include <models/cv_helpers.hpp>
-#include <models/math_helpers.hpp>
+#include <helpers/cv_helpers.hpp>
+#include <helpers/math_helpers.hpp>
+#include <commands/command.hpp>
 #include <commands/command_iostart.hpp>
 #include <commands/command_iostop.hpp>
 #include <commands/command_videostart.hpp>
 #include <commands/command_videostop.hpp>
+#include <boost/thread.hpp>
+#include <flags.hpp>
 
 //BIG TODO: rework to use scanner object as context to command objects
-namespace scanner {
-            scanner::scanner() {};
+namespace scanner {  
+            bool IOalive, video_alive,
+                scanning, calibrating;
+            
+            boost::mutex mtx_scanning, mtx_calibrating,
+                        mtx_video_alive, mtx_IOalive;
 
-            void scanner::scan_start() {};
-            void scanner::scan_stop() {};
-            void scanner::load_point_cloud() {};
-            void scanner::setprop() {};
+            scanner::scanner() {}
 
+            void scanner::scan_start() {}
+            void scanner::scan_stop() {}
+            void scanner::load_point_cloud() {}
+            void scanner::setprop() {}
 
-            void scanner::send_command(command comm) {  
-                if(comm.code == COMM_IOSTART && IOalive) return;
-                if(comm.code == COMM_IOSTOP && !IOalive) return;
+            void scanner::send_command(std::shared_ptr<command> comm, bool blocking) {  
+                if(comm->code == COMM_IOSTART && IOalive) return;
+                if(comm->code == COMM_IOSTOP && !IOalive) return;
 
-                if(comm.code == COMM_IOSTART || comm.code == COMM_IOSTOP) command.execute();
-                else commandq.enqueue(comm);
+                if(comm->code == COMM_IOSTART || comm->code == COMM_IOSTOP) comm->execute(comm);
+                else {
+                    if(blocking) commandq.enqueue(comm);
+                    else commandq.try_enqueue(comm);
+                } 
             }
-            void scanner::try_send_command(command comm) { commandq.try_enqueue(comm); }
-            bool scanner::is_scanning() { return false; }
-            bool scanner::is_calibrating() { return false; }
+ 
+            bool scanner::get_scanning() {
+                boost::unique_lock<boost::mutex> lock(mtx_scanning);
+                return scanning;
+            }
 
-//TODO: turn into object, sort out public/private variables etc...
-//API----------------------------------
+            bool scanner::get_calibrating() {
+                boost::unique_lock<boost::mutex> lock(mtx_calibrating);
+                return calibrating;
+            }
 
+            bool scanner::get_IOalive() {
+                boost::unique_lock<boost::mutex> lock(mtx_IOalive);
+                return IOalive;
+            }
+
+            bool scanner::get_video_alive() {
+                boost::unique_lock<boost::mutex> lock(mtx_video_alive);
+                return video_alive;
+            }
+
+            void scanner::set_scanning(bool val) {
+                boost::unique_lock<boost::mutex> lock(mtx_scanning);
+                scanning = val;
+            }
+
+            void scanner::set_calibrating(bool val) {
+                boost::unique_lock<boost::mutex> lock(mtx_calibrating);
+                calibrating = val;
+            }
+
+            void scanner::set_IOalive(bool val) {
+                boost::unique_lock<boost::mutex> lock(mtx_IOalive);
+                IOalive = val;
+            }
+
+            void scanner::set_video_alive(bool val) {
+                boost::unique_lock<boost::mutex> lock(mtx_video_alive);
+                video_alive = val;
+            }
 scanner sc;
-std::map<std::string, Napi::FunctionReference> ev_handlers;
+std::map<std::string, Napi::FunctionReference> ev_handlers;        
 
 void add_listener(const Napi::CallbackInfo& info) {
     Napi::Function fn = info[1].As<Napi::Function>();
@@ -53,7 +96,25 @@ void remove_listener(const Napi::CallbackInfo& info) {
 void send_command(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
     nlohmann::json j = nlohmann::json::parse(jstr);
-    sc.commandq.try_enqueue(command(j.get<jcommand>()));
+    jcommand jcomm = j.get<jcommand>();
+
+    switch(jcomm.code) {
+        case COMM_IOSTART:
+            sc.send_command(std::shared_ptr<command>(new command_iostart(sc, jcomm),[=](command* comm)
+{
+    std::cout << "ddeleting command\n";
+}), true);
+            break;
+        case COMM_IOSTOP:
+            sc.send_command(std::shared_ptr<command>(new command_iostop(sc, jcomm)), true);        
+            break;
+        case COMM_VIDEOSTART:
+            sc.send_command(std::shared_ptr<command>(new command_videostart(sc, jcomm)), true);
+            break;
+        case COMM_VIDEOSTOP:
+            sc.send_command(std::shared_ptr<command>(new command_videostop(sc, jcomm)), true);
+            break;
+    }
 }
 
 Napi::ThreadSafeFunction stremitTSFN;
@@ -64,7 +125,7 @@ void _stremit(const Napi::CallbackInfo& info) {
     
     if(it != ev_handlers.end()) it->second.Value().Call({msg});
 };
-void stremit(std::string e, std::string msg, bool blocking) {    
+void scanner::stremit(std::string e, std::string msg, bool blocking) {    
     auto callback = [e, msg]( Napi::Env env, Napi::Function jscb) {
       jscb.Call( { Napi::String::New(env, e), Napi::String::New(env, msg) });
     };
@@ -80,7 +141,6 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
                     Napi::Function::New(env, remove_listener));
     exports.Set(Napi::String::New(env, "sendCommand"), 
                     Napi::Function::New(env, send_command));
-
     stremitTSFN = Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1);
 
     return exports;

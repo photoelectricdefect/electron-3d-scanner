@@ -1,4 +1,7 @@
-namespace math_helper {
+#include <models/line_segment.hpp>
+#include <opencv2/imgproc.hpp>
+
+namespace math_helpers {
 
 static float eucl2D(const cv::Mat& a, const cv::Mat& b)
 {

@@ -1,13 +1,17 @@
 #include <commands/command_videostart.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <helpers/cv_helpers.hpp>
 
 namespace scanner {
-    command_videostart::command_videostart(scanner ctx, int code) : command(ctx, code) {}
-    command_videostart::command_videostart(scanner ctx, jcommand jcomm) : command(ctx, jcomm) {}
+    command_videostart::command_videostart(scanner& ctx, int code) : command(ctx, code) {}
+    command_videostart::command_videostart(scanner& ctx, jcommand jcomm) : command(ctx, jcomm) {}
 
-            void command_videostart::execute() {
-                _ctx.video_alive = true;
+            void command_videostart::execute(std::shared_ptr<command> self) {
+                self->ctx.set_video_alive(true);
 
-                auto fn = [](){
+                auto fn = [self](){
             cv::VideoCapture cap;
 	        cap.open(0);
 
@@ -35,13 +39,13 @@ namespace scanner {
 			        continue;
 		        }
         
-                _ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
+                self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
                 }
                 catch (boost::thread_interrupted&) { running = false; }
             }
         };
     
-        _ctx.thread_video = boost::thread{fn};
-        _ctx.stremit(EV_VIDEOSTART, "", true);
+        self->ctx.thread_video = boost::thread{fn};
+        self->ctx.stremit(EV_VIDEOSTART, "", true);
         }
 }

@@ -1,31 +1,19 @@
-#ifndef COMMAND_SCANNER_H_
-#define COMMAND_SCANNER_H_
+#ifndef SCANNER_H_
+#define SCANNER_H_
 
 #include <napi.h>
 #include <iostream>
 #include <boost/thread.hpp>
-#include <boost/chrono.hpp>
 #include <models/threadsafe_queue.hpp>
-#include <models/command.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <commands/command.hpp>
 #include <string>
+#include <memory>
 
 namespace scanner {
-            const std::string EV_ERROR = "error",
-                EV_STATUS = "status",
-                EV_IMUPDATE = "imupdate",
-                EV_VIDEOSTART = "videostart",
-                EV_VIDEOSTOP = "videostop",
-                EV_IOSTART = "iostart",
-                EV_IOSTOP = "iostop";
-
     class scanner {
-        public:
-            bool IOalive, video_alive,
-                scanning, calibrating;
+        public:            
             boost::thread threadIO, thread_video;
-            threadsafe_queue<command> commandq;
+            threadsafe_queue<std::shared_ptr<command>> commandq;
             
             scanner();
             //move these to their own command objects
@@ -36,16 +24,19 @@ namespace scanner {
             void setprop();
             //--------
 
-            void send_command(command comm);
-            void try_send_command(command comm);
-            bool is_scanning();
-            bool is_calibrating();
-    };
+            void send_command(std::shared_ptr<command> comm, bool blocking);
+            void stremit(std::string e, std::string msg, bool blocking);
 
-    void stremit(std::string e, std::string msg, bool blocking);
-    void add_listener(const Napi::CallbackInfo& info);
-    void remove_listener(const Napi::CallbackInfo& info);
-    void send_command(const Napi::CallbackInfo& info);
+            void set_IOalive(bool val);
+            void set_video_alive(bool val);            
+            void set_scanning(bool val);
+            void set_calibrating(bool val);
+
+            bool get_IOalive();
+            bool get_video_alive();            
+            bool get_scanning();
+            bool get_calibrating();
+    };
 }
 
 #endif

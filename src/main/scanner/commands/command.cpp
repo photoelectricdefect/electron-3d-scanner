@@ -1,5 +1,5 @@
-#include <models/command.hpp>
-    
+#include <commands/command.hpp>
+
 namespace scanner {
     void to_json(nlohmann::json& j, const jcommand& data) {
         j = nlohmann::json{{ "code", data.code }};
@@ -9,15 +9,13 @@ namespace scanner {
         j.at("code").get_to(data.code);
     }
 
-    command::command(scanner& ctx, int _code) {
-        _ctx = ctx;
+    command::command(scanner& _ctx, int _code) : ctx(_ctx) {
         code = _code;
     }
 
-    command::command(scanner& ctx, jcommand jcomm) {
-        _ctx = ctx;
+    command::command(scanner& _ctx, jcommand jcomm) : ctx(_ctx) {
         code = jcomm.code;
     }
 
-    virtual void command::execute() {};
+    void command::execute(std::shared_ptr<command> self) {}
 }

@@ -1,4 +1,5 @@
 #include <base64.h>
+#include <opencv2/imgproc.hpp>
 
 namespace cv_helpers {
 

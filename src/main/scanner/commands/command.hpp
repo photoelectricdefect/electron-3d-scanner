@@ -2,17 +2,10 @@
 #define COMMAND_H_
 
 #include <json.hpp>
+#include <flags.hpp>
+#include <memory>
 
-namespace scanner {
-    const int
-        COMM_IOSTART = 0,
-        COMM_IOSTOP = 1,
-        COMM_VIDEOSTART = 2,
-        COMM_VIDEOSTOP = 3,
-        COMM_SCAN = 4,
-        COMM_LOADMODEL = 5,
-        COMM_SETPROP = 6;
-    
+namespace scanner {    
     struct jcommand {
         int code;
     };
@@ -20,14 +13,15 @@ namespace scanner {
     void to_json(nlohmann::json& j, const jcommand& data);
     void from_json(const nlohmann::json& j, jcommand& data);
 
+    class scanner;
+
     class command {
-        private:
-            scanner _ctx;
         public:
-            int code;     
-            command(scanner& ctx, int _code);
-            command(scanner& ctx, jcommand jcomm);
-            virtual void execute();
+            scanner& ctx;
+            int code;
+            command(scanner& _ctx, int _code);
+            command(scanner& _ctx, jcommand jcomm);
+            virtual void execute(std::shared_ptr<command> self);
     };
 }
 

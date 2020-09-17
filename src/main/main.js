@@ -71,7 +71,12 @@ app.whenReady().then(openIndex).then(() => {
 
     scanner.sendCommand(JSON.stringify({code:commands.iostart}));    
     // setTimeout(() => {
-    //   scanner.test_imemit("/home/nejc/projects/cv/improved-ChInEsE-3d-scanner/src/assets/thomas.png");  
-    // }, 3000);
+    //   scanner.sendCommand(JSON.stringify({code:commands.iostop}));    
+    // }, 5000);
+
+    // setTimeout(() => {
+    //   scanner.sendCommand(JSON.stringify({code:commands.iostart}));    
+    // }, 7000);
+
   });
 });

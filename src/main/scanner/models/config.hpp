@@ -1,11 +1,11 @@
+#ifndef CONFIG_H_
+#define CONFIG_H_
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <json.hpp>
 
 namespace scanner {    
-    const int FPS_60 = 60,
-            FPS_30 = 30;
-
     struct calib_data {
         std::vector<double> K, D;
     };
@@ -19,3 +19,5 @@ namespace scanner {
             void load_calib(cv::Mat& K, cv::Mat& D);        
     };
 }
+
+#endif
