@@ -18,10 +18,7 @@ static float eucl2D(const Eigen::Vector2f& pt1, const Eigen::Vector2f& pt2)
 
 static int cross2D(const Eigen::Vector2f& u, const Eigen::Vector2f& v)
 {
-	Eigen::Matrix2f A;
-	A << u(0), v(0),
-		u(1), v(1);
-	return A.determinant();
+	return u(0) * v(1) - v(0) * u(1);
 }
 
 //TODO: improve by accounting for parallel lines
@@ -93,7 +90,7 @@ static Eigen::Vector3f proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3
 }
 
 static Eigen::Vector3f proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3f& b) {
-	return proj_a2b(a, b, b.squaredNorm());
+	return proj_a2b3D(a, b, b.squaredNorm());
 }
 
 static float cross_ratio(float A, float B, float C,

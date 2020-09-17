@@ -9,13 +9,12 @@ namespace scanner {
                 self->ctx.set_IOalive(true);
 
                 auto fn = [self]() {
-                    std::cout << "iostart... 0" << std::endl;
                     self->ctx.commandq.clear();
                     bool running = true;
-                    std::cout << "iostart... 1" << std::endl;
+
                     while(running) {
                         try {
-                            boost::this_thread::interruption_point(); 
+                            boost::this_thread::interruption_point();
                             std::shared_ptr<command> comm = self->ctx.commandq.dequeue();
                             comm->execute(comm);
                         }

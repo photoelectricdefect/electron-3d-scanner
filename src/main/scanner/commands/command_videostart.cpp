@@ -21,16 +21,12 @@ namespace scanner {
 		        return;
 	        }
 
-	        std::cout << "space = capture image" << std::endl;
-
 	        cv::Mat frame;
 	        bool running = true;
 
             while(running) {
-		        try {
-                boost::this_thread::interruption_point(); 
-
-                char c = cv::waitKey((int)(1000 / FPS_60));
+                try{             
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(1000/FPS_60));   
 		        cap.read(frame);
 
 		        if (frame.empty())
@@ -38,7 +34,7 @@ namespace scanner {
 			        std::cerr << "empty frame grabbed" << std::endl;
 			        continue;
 		        }
-        
+                    
                 self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
                 }
                 catch (boost::thread_interrupted&) { running = false; }

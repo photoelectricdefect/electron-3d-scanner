@@ -1,29 +1,10 @@
 'use strict'
 
-const { app, BrowserWindow, ipcMain, ipcRenderer } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const scanner = require("bindings")("scanner");
+const { config } = require("./app/scripts/config");
 
 let index;
-
-const events =  {
-  status: "status",
-  imupdate: "imupdate",
-  videostart: "videostart",
-  videostop: "videostop",
-  error: "error",
-  iostart: "iostart",
-  iostop: "iostop"
-};
-
-const commands =  {
-  iostart: 0,
-  iostop: 1,
-  videostart: 2,
-  videostop: 3,
-  scan: 4,
-  loadmodel: 5,
-  setprop: 6
-};
 
 const openIndex =  () => {
     index = new BrowserWindow({
@@ -37,46 +18,44 @@ const openIndex =  () => {
     index.loadFile('app/views/index.html');
     index.webContents.openDevTools();
 }
-  
+
 app.whenReady().then(openIndex).then(() => {
-  index.webContents.on("did-finish-load", () => {
-    //remove later
-    scanner.addListener(events.imupdate, (base64) => {
-      index.webContents.send(events.imupdate, base64);
+  index.webContents.on("did-finish-load", () => {  
+    scanner.addListener(config.events.iostart, () => {
+      console.log(config.events.iostart);
     });
-  
-    scanner.addListener(events.videostart, () => {
-      scanner.addListener(events.imupdate, (base64) => {
-        index.webContents.send(events.imupdate, base64);
+
+    scanner.addListener(config.events.iostop, () => {
+      console.log(config.events.iostop);
+    });
+
+    scanner.addListener(config.events.videostart, () => {
+      console.log(config.events.videostart);
+
+      scanner.addListener(config.events.imupdate, (base64) => {
+        index.webContents.send(config.events.imupdate, base64);
       });  
     });
 
-    scanner.addListener(events.videostop, () => {
-      index.webContents.removeListener(events.imupdate);
+    scanner.addListener(config.events.videostop, () => {
+      console.log(config.events.videostop);
+      index.webContents.removeListener(config.events.imupdate);
     });
 
-    scanner.addListener(events.status, (msg) => {
+    scanner.addListener(config.events.status, (msg) => {
+      console.log(config.events.status);
+      console.log(msg);
     });
 
-    scanner.addListener(events.error, (msg) => {
+    scanner.addListener(config.events.error, (msg) => {
+      console.log(config.events.error);
+      console.log(msg);
     });
 
-    scanner.addListener(events.iostart, (msg) => {
-      console.log(events.iostart);
-    });
+    ipcMain.on('forward-command', (comm) => {
+      scanner.sendCommand(JSON.stringify({code: comm}))
+    });  
 
-    scanner.addListener(events.iostop, (msg) => {
-      console.log(events.iostop);
-    });
-
-    scanner.sendCommand(JSON.stringify({code:commands.iostart}));    
-    // setTimeout(() => {
-    //   scanner.sendCommand(JSON.stringify({code:commands.iostop}));    
-    // }, 5000);
-
-    // setTimeout(() => {
-    //   scanner.sendCommand(JSON.stringify({code:commands.iostart}));    
-    // }, 7000);
-
+    scanner.sendCommand(JSON.stringify({code: config.commands.iostart}));
   });
 });

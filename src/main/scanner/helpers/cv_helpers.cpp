@@ -1,13 +1,16 @@
+#include <helpers/cv_helpers.hpp>
 #include <base64.h>
+#include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 namespace cv_helpers {
 
-static void set_px(const cv::Mat& img, int x, int y, uint8_t intensity) {
+static void set_px(cv::Mat& img, int x, int y, uint8_t intensity) {
 	img.ptr<uint8_t>(y)[x] = intensity;
 }
 
-static void set_px(const cv::Mat& img, int x, int y, cv::Vec3b intensity) {
+static void set_px(cv::Mat& img, int x, int y, cv::Vec3b intensity) {
 	img.ptr<cv::Vec3b>(y)[x] = intensity;
 }
 
@@ -39,6 +42,10 @@ static bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segm
 			int intersections = 0;
 			Eigen::Vector2f O(0, a(1));
 			bool on_line = false;
+
+			auto cross_2D = [](const Eigen::Vector2f& u, const Eigen::Vector2f& v) {					
+					return u(0) * v(1) - v(0) * u(1);
+			};
 
 			for(int i = 0; i < sides.size(); i++) {
 				Eigen::Vector2f pq = O - sides[i].a,
@@ -88,7 +95,7 @@ static void crop(const cv::Mat& img,  cv::Mat& cropped, const Eigen::Vector2f& q
 	cropped = img(ROI);
 }
 
-static float masked_threshold(cv::Mat& img, cv::Mat mask, int type, int threshold) {
+static float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int threshold) {
 	int idx = 0,
 	n_px = cv::countNonZero(mask);
 	cv::Mat tmp(cv::Size(n_px, 1), CV_8UC1);
@@ -129,111 +136,111 @@ static void PCA(cv::Mat& data, Eigen::MatrixXf& V, Eigen::MatrixXf& D, Eigen::Ve
 	}
 }
 
-static void mat2base64str(const cv::Mat& img) {
+std::string mat2base64str(cv::Mat& img) {
     std::vector<uint8_t> buf;
     cv::imencode(".jpg", img, buf);
     auto *enc = reinterpret_cast<unsigned char*>(buf.data());
     return base64_encode(enc, buf.size());
 }
 
-//Should keep??
-void find_lines(cv::Mat img, std::vector<cv::Vec2f >& lines, float r, float theta, int hough_threshold, int low_treshold, int high_threshold, int kernel_size)
-{
-	cv::Mat edges;
-	cv::Canny(img, edges, low_treshold, high_threshold, kernel_size);
-    cv::imshow("edges", edges);
-	cv::HoughLines(edges, lines, r, theta, hough_threshold, 0, 0);
-}
+// //Should keep??
+// void find_lines(cv::Mat img, std::vector<cv::Vec2f >& lines, float r, float theta, int hough_threshold, int low_treshold, int high_threshold, int kernel_size)
+// {
+// 	cv::Mat edges;
+// 	cv::Canny(img, edges, low_treshold, high_threshold, kernel_size);
+//     cv::imshow("edges", edges);
+// 	cv::HoughLines(edges, lines, r, theta, hough_threshold, 0, 0);
+// }
 
-//Should keep??
-void draw_lines(cv::Mat img, std::vector<cv::Vec2f > lines, cv::Scalar clr, int width)
-{
-	int diag = round(sqrt(pow(img.size().height, 2) + pow(img.size().width, 2)));
+// //Should keep??
+// void draw_lines(cv::Mat img, std::vector<cv::Vec2f > lines, cv::Scalar clr, int width)
+// {
+// 	int diag = round(sqrt(pow(img.size().height, 2) + pow(img.size().width, 2)));
 
-	for (auto &line: lines)
-	{
-		float r = line[0];
-		float sin_theta = sin(line[1]);
-		float cos_theta = cos(line[1]);
-		int x0 = round(r *cos_theta);
-		int y0 = round(r *sin_theta);
-		cv::Point a, b;
-		a.x = cvRound(x0 + diag *sin_theta);
-		a.y = cvRound(y0 - diag *cos_theta);
-		b.x = cvRound(x0 - diag *sin_theta);
-		b.y = cvRound(y0 + diag *cos_theta);
-		cv::line(img, a, b, clr, width, cv::LINE_AA);
-	}
-}
+// 	for (auto &line: lines)
+// 	{
+// 		float r = line[0];
+// 		float sin_theta = sin(line[1]);
+// 		float cos_theta = cos(line[1]);
+// 		int x0 = round(r *cos_theta);
+// 		int y0 = round(r *sin_theta);
+// 		cv::Point a, b;
+// 		a.x = cvRound(x0 + diag *sin_theta);
+// 		a.y = cvRound(y0 - diag *cos_theta);
+// 		b.x = cvRound(x0 - diag *sin_theta);
+// 		b.y = cvRound(y0 + diag *cos_theta);
+// 		cv::line(img, a, b, clr, width, cv::LINE_AA);
+// 	}
+// }
 
-//Should keep??
-void triangulation_matting(cv::Mat B1, cv::Mat I1, cv::Mat B2, cv::Mat I2, cv::Mat& alpha) {
-	alpha = cv::Mat(I1.size(), CV_8UC1);
-	Eigen::Matrix<float, 6, 4> A;
-	A << 1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0;
-	Eigen::Matrix<float, 6, 1> b;
-	Eigen::Matrix<float, 4, 1> x;
+// //Should keep??
+// void triangulation_matting(cv::Mat B1, cv::Mat I1, cv::Mat B2, cv::Mat I2, cv::Mat& alpha) {
+// 	alpha = cv::Mat(I1.size(), CV_8UC1);
+// 	Eigen::Matrix<float, 6, 4> A;
+// 	A << 1, 0, 0, 0,
+// 		0, 1, 0, 0,
+// 		0, 0, 1, 0,
+// 		1, 0, 0, 0,
+// 		0, 1, 0, 0,
+// 		0, 0, 1, 0;
+// 	Eigen::Matrix<float, 6, 1> b;
+// 	Eigen::Matrix<float, 4, 1> x;
 
-	for(int i = 0; i < B1.rows; i++) {
-		for(int j = 0; j < B1.cols; j++) {
-			cv::Vec3b I1_px = get_px_3C(I1, j, i);
-			cv::Vec3b B1_px = get_px_3C(B1, j, i);
-			cv::Vec3b I2_px = get_px_3C(I2, j, i);
-			cv::Vec3b B2_px = get_px_3C(B2, j, i);
-			b(0) = I1_px(0) - B1_px(0);
-			b(1) = I1_px(1) - B1_px(1);
-			b(2) = I1_px(2) - B1_px(2);
-			b(3) = I2_px(0) - B2_px(0);
-			b(4) = I2_px(1) - B2_px(1);
-			b(5) = I2_px(2) - B2_px(2);
-			A(0, 3) = -B1_px(0);	
-			A(1, 3) = -B1_px(1);
-			A(2, 3) = -B1_px(2);
-			A(3, 3) = -B2_px(0);
-			A(4, 3) = -B2_px(1);
-			A(5, 3) = -B2_px(2);	
-			x = A.colPivHouseholderQr().solve(b);
+// 	for(int i = 0; i < B1.rows; i++) {
+// 		for(int j = 0; j < B1.cols; j++) {
+// 			cv::Vec3b I1_px = get_px_3C(I1, j, i);
+// 			cv::Vec3b B1_px = get_px_3C(B1, j, i);
+// 			cv::Vec3b I2_px = get_px_3C(I2, j, i);
+// 			cv::Vec3b B2_px = get_px_3C(B2, j, i);
+// 			b(0) = I1_px(0) - B1_px(0);
+// 			b(1) = I1_px(1) - B1_px(1);
+// 			b(2) = I1_px(2) - B1_px(2);
+// 			b(3) = I2_px(0) - B2_px(0);
+// 			b(4) = I2_px(1) - B2_px(1);
+// 			b(5) = I2_px(2) - B2_px(2);
+// 			A(0, 3) = -B1_px(0);	
+// 			A(1, 3) = -B1_px(1);
+// 			A(2, 3) = -B1_px(2);
+// 			A(3, 3) = -B2_px(0);
+// 			A(4, 3) = -B2_px(1);
+// 			A(5, 3) = -B2_px(2);	
+// 			x = A.colPivHouseholderQr().solve(b);
 
-			// // x(3) = abs(x(3));
-			if (x(0) < 0) { x(0) = 0; }
-			else if (x(0) > 255) { x(0) = 255; }
+// 			// // x(3) = abs(x(3));
+// 			if (x(0) < 0) { x(0) = 0; }
+// 			else if (x(0) > 255) { x(0) = 255; }
 						
-			if (x(1) < 0) { x(1) = 0; }
-			else if (x(1) > 255) { x(1) = 255; }
+// 			if (x(1) < 0) { x(1) = 0; }
+// 			else if (x(1) > 255) { x(1) = 255; }
 						
-			if (x(2) < 0) { x(2) = 0; }
-			else if (x(2) > 255) { x(2) = 255; }
+// 			if (x(2) < 0) { x(2) = 0; }
+// 			else if (x(2) > 255) { x(2) = 255; }
 						
-			if (x(3) < 0) { x(3) = 0; }
-			else if (x(3) > 1) { x(3) = 1; }
+// 			if (x(3) < 0) { x(3) = 0; }
+// 			else if (x(3) > 1) { x(3) = 1; }
 
-			set_px(alpha, j, i, x(3) * MAX_INTENSITY);
-		}
+// 			set_px(alpha, j, i, x(3) * MAX_INTENSITY);
+// 		}
 
-	}
-}
+// 	}
+// }
 
-//Should keep??
-void draw_lines(cv::Mat img, std::vector<line_segment> lines, cv::Scalar clr, int width)
-{
-	for (auto &ln: lines)
-	{
-		cv::line(img, cv::Point(ln.a(0), ln.a(1)), cv::Point(ln.b(0), ln.b(1)), clr, width, cv::LINE_AA);
-	}
-}
+// //Should keep??
+// void draw_lines(cv::Mat img, std::vector<line_segment> lines, cv::Scalar clr, int width)
+// {
+// 	for (auto &ln: lines)
+// 	{
+// 		cv::line(img, cv::Point(ln.a(0), ln.a(1)), cv::Point(ln.b(0), ln.b(1)), clr, width, cv::LINE_AA);
+// 	}
+// }
 
-//Should keep??
-void SLIC(cv::Mat img, cv::Mat& dst, cv::ximgproc::SLICType type, int size, int connectivity) {
-	cv::Ptr<cv::ximgproc::SuperpixelSLIC> SLIC = cv::ximgproc::createSuperpixelSLIC(img, type, size, connectivity);
-	SLIC->iterate();
-	SLIC->enforceLabelConnectivity(50);
-	cv::Mat mask;
-	SLIC->getLabelContourMask(mask, true);
-	dst.setTo(cv::Scalar(0, 255, 0), mask);
-}
+// //Should keep??
+// void SLIC(cv::Mat img, cv::Mat& dst, cv::ximgproc::SLICType type, int size, int connectivity) {
+// 	cv::Ptr<cv::ximgproc::SuperpixelSLIC> SLIC = cv::ximgproc::createSuperpixelSLIC(img, type, size, connectivity);
+// 	SLIC->iterate();
+// 	SLIC->enforceLabelConnectivity(50);
+// 	cv::Mat mask;
+// 	SLIC->getLabelContourMask(mask, true);
+// 	dst.setTo(cv::Scalar(0, 255, 0), mask);
+// }
 }

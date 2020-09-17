@@ -27,8 +27,8 @@ namespace scanner {
             void scanner::setprop() {}
 
             void scanner::send_command(std::shared_ptr<command> comm, bool blocking) {  
+                if(comm->code != COMM_IOSTART && !IOalive) return;
                 if(comm->code == COMM_IOSTART && IOalive) return;
-                if(comm->code == COMM_IOSTOP && !IOalive) return;
 
                 if(comm->code == COMM_IOSTART || comm->code == COMM_IOSTOP) comm->execute(comm);
                 else {
@@ -100,16 +100,13 @@ void send_command(const Napi::CallbackInfo& info) {
 
     switch(jcomm.code) {
         case COMM_IOSTART:
-            sc.send_command(std::shared_ptr<command>(new command_iostart(sc, jcomm),[=](command* comm)
-{
-    std::cout << "ddeleting command\n";
-}), true);
+            sc.send_command(std::shared_ptr<command>(new command_iostart(sc, jcomm)), true);
             break;
         case COMM_IOSTOP:
             sc.send_command(std::shared_ptr<command>(new command_iostop(sc, jcomm)), true);        
             break;
         case COMM_VIDEOSTART:
-            sc.send_command(std::shared_ptr<command>(new command_videostart(sc, jcomm)), true);
+            sc.send_command(std::shared_ptr<command>(new command_videostart(sc, jcomm), [=](command* comm) {std::cout << "videostart command destroyed" << std::endl;}), true);
             break;
         case COMM_VIDEOSTOP:
             sc.send_command(std::shared_ptr<command>(new command_videostop(sc, jcomm)), true);

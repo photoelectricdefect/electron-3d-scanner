@@ -20,7 +20,7 @@ namespace scanner {
 
     T dequeue() {
         boost::unique_lock<boost::mutex> lock(_mutex);
-        std::cout << "dequeing..." << std::endl;
+
         while(_q.size() <= 0) _condition.wait(lock);
 
         T t = _q.front();
