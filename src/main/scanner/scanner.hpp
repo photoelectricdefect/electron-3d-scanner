@@ -4,16 +4,23 @@
 #include <napi.h>
 #include <iostream>
 #include <boost/thread.hpp>
-#include <models/threadsafe_queue.hpp>
+#include <models/shared_queue.hpp>
 #include <commands/command.hpp>
+#include <cameracalib.hpp>
+#include <models/event.hpp>
 #include <string>
 #include <memory>
 
 namespace scanner {
     class scanner {
         public:            
-            boost::thread threadIO, thread_video;
-            threadsafe_queue<std::shared_ptr<command>> commandq;
+            boost::thread threadIO, thread_camera, thread_table;
+            boost::mutex mtx_video_alive, mtx_cameracalib;
+            bool IOalive, camera_alive, video_alive,
+                scanning, calibratingcamera;
+            shared_queue<std::shared_ptr<command>> commandq;
+            shared_queue<event<int>> camera_inputq, table_inputq;
+            cameracalib calib_camera;
             
             scanner();
             //move these to their own command objects
@@ -24,18 +31,14 @@ namespace scanner {
             void setprop();
             //--------
 
-            void send_command(std::shared_ptr<command> comm, bool blocking);
+            void invokeIO(std::shared_ptr<command> comm, bool blocking);
             void stremit(std::string e, std::string msg, bool blocking);
 
-            void set_IOalive(bool val);
-            void set_video_alive(bool val);            
-            void set_scanning(bool val);
-            void set_calibrating(bool val);
-
-            bool get_IOalive();
-            bool get_video_alive();            
-            bool get_scanning();
-            bool get_calibrating();
+            template<typename F>
+            void lock(F& fn, boost::mutex& mtx) {
+                boost::unique_lock<boost::mutex> lock(mtx);
+                fn();
+            }
     };
 }
 

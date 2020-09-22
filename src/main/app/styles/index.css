@@ -1,0 +1,50 @@
+:root {
+    --primary-black: #1D1B1B;
+    --secondary-black: #333131;
+    --tertiary-black: #4A4848;
+    --primary-red: #EC4D37;
+    --secondary-red: #d44531;
+}
+
+.primary-black {
+    background-color: var(--primary-black);
+}
+
+.secondary-black {
+    background-color: var(--secondary-black);
+}
+
+.tertiary-black {
+    background-color: var(--tertiary-black);
+}
+
+.primary-red {
+    background-color: var(--primary-red);
+}
+
+.secondary-red {
+    background-color: var(--secondary-red);
+}
+
+body {
+    color: white !important;
+}
+
+.btn-red {
+    border: 1px solid var(--tertiary-black);
+    color: white;
+    background-color: var(--tertiary-black);
+}
+
+.btn-red:hover {
+    background-color: var(--primary-red);
+}
+
+.sidebar {
+    /* border-right: 1px solid var(--primary-red); */
+}
+
+.divider {
+    background-color: var(--tertiary-black);
+    /* border-bottom: 1px solid var(--primary-red); */
+}

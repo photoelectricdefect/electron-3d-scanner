@@ -12,7 +12,7 @@
   'msvs_settings': {
     'VCCLCompilerTool': { 'ExceptionHandling': 1 },
   },
-      "sources": ["scanner/scanner.cpp", 
+      "sources": ["scanner/scanner.cpp", "scanner/cameracalib.cpp", 
                   "<!@(ls -d ../source/*.cpp)", "<!@(ls -d scanner/commands/*.cpp)",
                   "<!@(ls -d scanner/helpers/*.cpp)"],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")",

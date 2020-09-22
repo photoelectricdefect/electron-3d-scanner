@@ -1,0 +1,17 @@
+#ifndef COMMAND_CAMERACALIBSTART_H_
+#define COMMAND_CAMERACALIBSTART_H_
+
+#include <scanner.hpp>
+#include <commands/command.hpp>
+#include <cameracalib.hpp>
+
+namespace scanner {
+    class command_cameracalibstart : public command {
+        public:
+            command_cameracalibstart(scanner& ctx, int code);
+            command_cameracalibstart(scanner& ctx, jcommand jcomm);
+            void execute(std::shared_ptr<command> self) override;
+    };
+}
+
+#endif

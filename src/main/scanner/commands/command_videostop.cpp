@@ -4,10 +4,15 @@ namespace scanner {
     command_videostop::command_videostop(scanner& ctx, int code) : command(ctx, code) {}
     command_videostop::command_videostop(scanner& ctx, jcommand jcomm) : command(ctx, jcomm) {}
 
-    void command_videostop::execute(std::shared_ptr<command> self) {
-        self->ctx.thread_video.interrupt();
-        self->ctx.thread_video.join();
-        self->ctx.set_video_alive(false);
-        self->ctx.stremit(EV_VIDEOSTOP, "", true);
+    void command_videostop::execute(std::shared_ptr<command> self) {        
+        ctx.thread_camera.interrupt();
+        ctx.thread_camera.join();
+        ctx.video_alive = false;
+        ctx.camera_alive = false;
+        nlohmann::json j;
+        j["prop"] = PROP_VIDEOALIVE;
+        j["value"] = false;
+        ctx.stremit(EV_PROPCHANGED, j.dump(), true); 
+        ctx.stremit(EV_VIDEOSTOP, "", true);
     }
 }

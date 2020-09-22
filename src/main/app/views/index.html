@@ -1,11 +1,8 @@
 <html>
-<!-- Text between angle brackets is an HTML tag and is not displayed.
-Most tags, such as the HTML and /HTML tags that surround the contents of
-a page, come in pairs; some tags, like HR, for a horizontal rule, stand 
-alone. Comments, such as the text you're reading, are not displayed when
-the Web page is shown. The information between the HEAD and /HEAD tags is 
-not displayed. The information between the BODY and /BODY tags is displayed.-->
 <head>
+    <link rel="stylesheet" href="../styles/index.css">
+    <link rel="stylesheet" href="../styles/bootstrap.min.css">
+    <script src="../scripts/util.js"></script>
     <script src="../scripts/index.js"></script>
 
     <script>
@@ -14,11 +11,39 @@ not displayed. The information between the BODY and /BODY tags is displayed.-->
             _index.init();                
         };    
     </script>
-<title>Enter a title, displayed at the top of the window.</title>
 </head>
-<!-- The information between the BODY and /BODY tags is displayed.-->
 <body>
-<button id="video-btn"></button>
-<img id="video">
+<div class="row h-100">
+    <div class="col-2 primary-black sidebar">
+        <div class="row" style="height:50px;">
+        </div>
+    <div class="row">
+        <div class="col-12 d-flex justify-content-start align-items-center divider">
+            <span class="ml-2"><b>Video</b></span>
+        </div>
+        <div class="w-100"></div>       
+        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
+            <button id="video-btn" class="ml-1 btn-red" type="button">Start Video</button>
+        </div>
+        <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
+            <span class="ml-2"><b>Camera Calibration</b></span>
+        </div>
+        <div class="w-100"></div>    
+        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
+            <button id="calibration-btn" class="ml-1 btn-red" type="button">Start Camera Calibration</button>
+        </div>
+        <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
+            <span class="ml-2"><b>Scanner Calibration</b></span>
+        </div>
+        <div class="w-100"></div>    
+        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
+            <button  class="ml-1 btn-red" type="button">Calibrate Scanner</button>
+        </div>
+    </div>
+    </div>
+    <div class="col-10 d-flex justify-content-center secondary-black">
+        <img id="video" class="img-fluid">
+    </div>
+</div>
 </body>
 </html>

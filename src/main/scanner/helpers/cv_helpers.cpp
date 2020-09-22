@@ -6,23 +6,23 @@
 
 namespace cv_helpers {
 
-static void set_px(cv::Mat& img, int x, int y, uint8_t intensity) {
+void set_px(cv::Mat& img, int x, int y, uint8_t intensity) {
 	img.ptr<uint8_t>(y)[x] = intensity;
 }
 
-static void set_px(cv::Mat& img, int x, int y, cv::Vec3b intensity) {
+void set_px(cv::Mat& img, int x, int y, cv::Vec3b intensity) {
 	img.ptr<cv::Vec3b>(y)[x] = intensity;
 }
 
-static uint8_t get_px(const cv::Mat& img, int x, int y) {
+uint8_t get_px(const cv::Mat& img, int x, int y) {
 	return img.ptr<uint8_t>(y)[x];
 }
 
-static cv::Vec3b get_px_3C(const cv::Mat& img, int x, int y) {
+cv::Vec3b get_px_3C(const cv::Mat& img, int x, int y) {
 	return img.ptr<cv::Vec3b>(y)[x];
 }
 
-static void sharpen(const cv::Mat& img, const cv::Mat& sharpened, float alpha, int threshold) {
+void sharpen(const cv::Mat& img, const cv::Mat& sharpened, float alpha, int threshold) {
 	cv::GaussianBlur(img, sharpened, cv::Size(5, 5), 0);
 	cv::addWeighted(img, alpha, sharpened, 1 - alpha, 0, sharpened);
 	cv::Mat low_contrast_mask = cv::abs(img - sharpened) < threshold;
@@ -38,7 +38,7 @@ static void sharpen(const cv::Mat& img, const cv::Mat& sharpened, float alpha, i
 // 	return sigma;
 // }
 
-static bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& sides) {
+bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& sides) {
 			int intersections = 0;
 			Eigen::Vector2f O(0, a(1));
 			bool on_line = false;
@@ -77,7 +77,7 @@ static bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segm
 			return false;
 }
 
-static void cut(cv::Mat& mask, const cv::Size& img_size, const std::vector<line_segment>& borders) {
+void cut(cv::Mat& mask, const cv::Size& img_size, const std::vector<line_segment>& borders) {
 	mask = cv::Mat(img_size, CV_8UC1);
 
 	for(int i = 0; i < img_size.height; i++) {
@@ -90,12 +90,12 @@ static void cut(cv::Mat& mask, const cv::Size& img_size, const std::vector<line_
 	}
 }
 
-static void crop(const cv::Mat& img,  cv::Mat& cropped, const Eigen::Vector2f& q,  const Eigen::Vector2f& s) {	
+void crop(const cv::Mat& img,  cv::Mat& cropped, const Eigen::Vector2f& q,  const Eigen::Vector2f& s) {	
 	cv::Rect ROI(q(0), q(1), abs(s(0) - q(0)), abs(s(1) - q(1)));
 	cropped = img(ROI);
 }
 
-static float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int threshold) {
+float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int threshold) {
 	int idx = 0,
 	n_px = cv::countNonZero(mask);
 	cv::Mat tmp(cv::Size(n_px, 1), CV_8UC1);
@@ -124,7 +124,7 @@ static float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int t
 	return t;
 }
 
-static void PCA(cv::Mat& data, Eigen::MatrixXf& V, Eigen::MatrixXf& D, Eigen::Vector2f& O) {
+void PCA(cv::Mat& data, Eigen::MatrixXf& V, Eigen::MatrixXf& D, Eigen::Vector2f& O) {
 	cv::PCA pca(data, cv::Mat(), cv::PCA::DATA_AS_ROW);
 	Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> v(pca.eigenvectors.ptr<double>(), data.cols, data.cols);
 	V = v.cast<float>();
