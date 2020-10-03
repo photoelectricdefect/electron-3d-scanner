@@ -20,9 +20,8 @@ namespace scanner {
 				ctx.camera.calibrating = true;
 				ctx.camera.thread_alive = true;
 				ctx.camera.video_alive = true;
-				cameracalib calib = self->ctx.camera.calib;
 
-                auto fn = [self, calib]() {
+                auto fn = [self, calib = ctx.camera.calib]() {
                     cv::VideoCapture cap;
 	                cap.open(0);
 
