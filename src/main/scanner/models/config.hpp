@@ -7,7 +7,8 @@
 
 namespace scanner {    
     struct calib_data {
-        std::vector<double> K, D;
+        std::vector<double> K, D, square_size;
+        std::vector<int> board_size;
     };
 
     void to_json(nlohmann::json& j, const calib_data& data);
