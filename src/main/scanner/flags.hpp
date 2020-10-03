@@ -14,15 +14,16 @@ namespace scanner {
                 EV_IOSTOP = "iostop",
                 EV_CAMERACALIBSTART = "cameracalibstart",
                 EV_CAMERACALIBSTOP = "cameracalibstop",
+                EV_SCANNERCALIBSTART = "scannercalibstart",
+                EV_SCANNERCALIBSTOP = "scannercalibstop",
+                EV_SCANNERCALIBIMAGECAPTURED = "scannercalibimagecaptured",
                 EV_PROPCHANGED = "propchanged";
 
     const int PROP_VIDEOALIVE = 0,
                 PROP_CALIBRATINGCAMERA = 1,
                 PROP_CALIBRATINGSCANNER = 2,
-                PROP_SCANNING = 3;
-
-    const std::string EVCHANNEL_CAMERA = "camera",
-                        EVCHANNEL_TABLE = "table";
+                PROP_SCANNING = 3,
+                PROP_SCANNERALIVE = 4;
 
     const int KEYCODE_SPACE = 32;
 
@@ -37,7 +38,9 @@ namespace scanner {
         COMM_SETPROP = 14,
         COMM_CAMERACALIBSTART = 8,
         COMM_CAMERACALIBSTOP = 9,
-        COMM_INPUT = 15;
+        COMM_SCANNERCALIBSTART = 16,
+        COMM_SCANNERCALIBSTOP = 17,
+        COMM_KEYSTROKE = 15;
 }
 
 #endif

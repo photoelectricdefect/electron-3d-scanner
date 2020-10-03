@@ -6,7 +6,11 @@ const events =  {
     error: "error",
     iostart: "iostart",
     iostop: "iostop",
-    propchanged: "propchanged"
+    propchanged: "propchanged",
+    cameracalibstart = "cameracalibstart",
+    cameracalibstop = "cameracalibstop",
+    scannercalibstart = "scannercalibstart",
+    scannercalibstop = "scannercalibstop"
 };
   
   const commands =  {
@@ -15,7 +19,7 @@ const events =  {
     videostart: 2,
     videostop: 3,
     loadmodel: 5,
-    input: 15,
+    keystroke: 15,
     cameracalibstart: 8,
     cameracalibstop: 9,
     scannercalibstart: 10,

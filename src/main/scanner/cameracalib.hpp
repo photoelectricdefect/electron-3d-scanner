@@ -11,7 +11,7 @@ namespace scanner {
             int ncaps;
             
             cameracalib();
-            cameracalib(const cv::Size& _board_size, const cv::Size& _square_size, int _ncaps);
+            cameracalib(cv::Size board_size_, cv::Size square_size_, int ncaps_);
             
             void load();
     };

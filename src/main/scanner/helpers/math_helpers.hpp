@@ -4,17 +4,17 @@
 
 namespace math_helpers {
 
-static float eucl2D(const cv::Mat& a, const cv::Mat& b);
-static float eucl2D(const Eigen::Vector2f& pt1, const Eigen::Vector2f& pt2);
-static int cross2D(const Eigen::Vector2f& u, const Eigen::Vector2f& v);
+// double eucl2D(const cv::Mat& a, const cv::Mat& b);
+double eucl2D(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
+int cross2D(const Eigen::Vector2d& u, const Eigen::Vector2d& v);
 //TODO: improve by accounting for parallel lines
-static bool intersection_line_segment(const Eigen::Vector2f& a1, const Eigen::Vector2f& b1, const Eigen::Vector2f& a2, const Eigen::Vector2f& b2, Eigen::Vector2f& intersection);
+bool intersection_line_segment(const Eigen::Vector2d& a1, const Eigen::Vector2d& b1, const Eigen::Vector2d& a2, const Eigen::Vector2d& b2, Eigen::Vector2d& intersection);
 //TODO: improve by accounting for parallel lines
-static bool intersects_line_segment(const Eigen::Vector2f& a1, const Eigen::Vector2f& b1, const Eigen::Vector2f& a2, const Eigen::Vector2f& b2);
-static bool intersection_line(const Eigen::Vector2f& a1, const Eigen::Vector2f& b1, const Eigen::Vector2f& a2, const Eigen::Vector2f& b2, Eigen::Vector2f& intersection);
-static Eigen::Vector3f proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3f& b, float b_squared_norm);
-static Eigen::Vector3f proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3f& b);
-static float cross_ratio(float A, float B, float C, float a, float b, float c, float q);
-static bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& sides);
+//bool intersects_line_segment(const Eigen::Vector2f& a1, const Eigen::Vector2f& b1, const Eigen::Vector2f& a2, const Eigen::Vector2d& b2);
+bool intersection_line(const Eigen::Vector2d& a1, const Eigen::Vector2d& b1, const Eigen::Vector2d& a2, const Eigen::Vector2d& b2, Eigen::Vector2d& intersection);
+Eigen::Vector3d proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3f& b, float b_squared_norm);
+Eigen::Vector3d proj_a2b3D(const Eigen::Vector3f& a, const Eigen::Vector3f& b);
+float cross_ratio(float A, float B, float C, float a, float b, float c, float q);
+bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& sides);
 
 }

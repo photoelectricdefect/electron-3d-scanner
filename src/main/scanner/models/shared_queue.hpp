@@ -29,6 +29,20 @@ namespace scanner {
         return t;
     }
 
+    // bool dequeue_timed(T& t, int timeout) {
+    //     boost::unique_lock<boost::mutex> lock(mtx);
+    //     auto duration = boost::chrono::system_clock::now() + timeout;
+
+    //     while(q.size() <= 0) {
+    //     if (_condition.wait_until(lock, duration) == 
+    //         boost::condition_variable::cv_status::timeout) return false;
+    //     } 
+
+    //     t = q.front();
+    //     q.pop();
+    //     return true;        
+    // }
+
     void try_enqueue(T t) {
         boost::unique_lock<boost::mutex> lock(mtx, boost::try_to_lock);
         
@@ -56,7 +70,7 @@ namespace scanner {
     }
 
     template<typename F>
-    void lock(F& fn, boost::mutex& mtx) {
+    void lock(F& fn) {
         boost::unique_lock<boost::mutex> lock(mtx);
         fn();
         _condition.notify_one();

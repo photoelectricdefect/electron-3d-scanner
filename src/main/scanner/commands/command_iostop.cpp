@@ -7,11 +7,11 @@ namespace scanner {
         void command_iostop::execute(std::shared_ptr<command> self) {
             ctx.threadIO.interrupt();
             ctx.threadIO.join();
-            ctx.thread_camera.interrupt();
-            ctx.thread_camera.join();
+            ctx.camera.thread_camera.interrupt();
+            ctx.camera.thread_camera.join();
             ctx.IOalive = false;
-            ctx.video_alive = false;
-            ctx.camera_alive = false;
+            ctx.camera.video_alive = false;
+            ctx.camera.thread_alive = false;
             ctx.stremit(EV_VIDEOSTOP, "", true);
             ctx.stremit(EV_IOSTOP, "", true);
         }

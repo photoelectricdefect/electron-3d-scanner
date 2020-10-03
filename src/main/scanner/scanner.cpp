@@ -10,22 +10,19 @@
 #include <commands/command_videostop.hpp>
 #include <commands/command_cameracalibstart.hpp>
 #include <commands/command_cameracalibstop.hpp>
-#include <commands/command_setprop.hpp>
-#include <commands/command_input.hpp>
+#include <commands/command_scannercalibstart.hpp>
+#include <commands/command_scannercalibstop.hpp>
+#include <commands/command_lambda.hpp>
 #include <boost/thread.hpp>
 #include <flags.hpp>
 
-//BIG TODO: rework to use scanner object as context to command objects
 namespace scanner {  
             scanner::scanner() {
-                //TODO: read from config file
-                calib_camera.load();
             }
 
             void scanner::scan_start() {}
             void scanner::scan_stop() {}
             void scanner::load_point_cloud() {}
-            void scanner::setprop() {}
 
             void scanner::invokeIO(std::shared_ptr<command> comm, bool blocking) {  
                 if(comm->code != COMM_IOSTART && !IOalive) return;
@@ -78,16 +75,20 @@ void send_command(const Napi::CallbackInfo& info) {
             break;
         case COMM_CAMERACALIBSTOP:
             sc.invokeIO(std::shared_ptr<command>(new command_cameracalibstop(sc, jcomm)), true);
-            break;
+            break;            
     }
 }
 
-void send_input(const Napi::CallbackInfo& info) {
+void keyboard_input(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
     nlohmann::json j = nlohmann::json::parse(jstr);
     int code = j["code"].get<int>();
-    int keycode = j["keycode"].get<int>();
-    sc.invokeIO(std::shared_ptr<command>(new command_input<int>(sc, code, event<int>(keycode), EVCHANNEL_CAMERA)), true);
+
+    auto comm = [j]() {
+        sc.camera.inputq.enqueue(j);
+    };
+
+    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)), true);
 }
 
 Napi::ThreadSafeFunction stremitTSFN;
@@ -120,10 +121,10 @@ void setprop(const Napi::CallbackInfo& info) {
 
             auto comm = [val]() {
                 auto setval = [val]() {
-                    sc.video_alive = val;
+                    sc.camera.video_alive = val;
                 };
 
-                sc.lock(setval, sc.mtx_video_alive);
+                sc.lock(setval, sc.camera.mtx_video_alive, false);
                 nlohmann::json j;
                 j["prop"] = PROP_VIDEOALIVE;
                 j["value"] = val;
@@ -131,7 +132,7 @@ void setprop(const Napi::CallbackInfo& info) {
                 sc.stremit(EV_PROPCHANGED, j.dump(), true);    
             };
 
-            sc.invokeIO(std::shared_ptr<command>(new command_setprop<decltype(comm)>(sc, code, comm)), true);
+            sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)), true);
             break;
     }
 }
@@ -147,8 +148,8 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
                     Napi::Function::New(env, remove_listener));
     exports.Set(Napi::String::New(env, "sendCommand"), 
                     Napi::Function::New(env, send_command));
-    exports.Set(Napi::String::New(env, "sendInput"), 
-                    Napi::Function::New(env, send_input));
+    exports.Set(Napi::String::New(env, "keyboardInput"), 
+                    Napi::Function::New(env, keyboard_input));
     exports.Set(Napi::String::New(env, "setProp"), 
                     Napi::Function::New(env, setprop));
     stremitTSFN = Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1);

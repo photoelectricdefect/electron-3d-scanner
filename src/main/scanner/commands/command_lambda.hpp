@@ -1,5 +1,5 @@
-#ifndef COMMAND_SETPROP_H_
-#define COMMAND_SETPROP_H_
+#ifndef COMMAND_LAMBDA_H_
+#define COMMAND_LAMBDA_H_
 
 #include <scanner.hpp>
 #include <commands/command.hpp>
@@ -8,11 +8,11 @@
 
 namespace scanner {
     template<typename F>
-    class command_setprop : public command {
+    class command_lambda : public command {
         public:
             F& fn;
-            command_setprop(scanner& ctx, int code, F& _fn) : command(ctx, code), fn(_fn) {}
-            command_setprop(scanner& ctx, jcommand jcomm, F& _fn) : command(ctx, jcomm), fn(_fn) {}
+            command_lambda(scanner& ctx, int code, F& _fn) : command(ctx, code), fn(_fn) {}
+            command_lambda(scanner& ctx, jcommand jcomm, F& _fn) : command(ctx, jcomm), fn(_fn) {}
             void execute(std::shared_ptr<command> self) override {
                 fn();
             }

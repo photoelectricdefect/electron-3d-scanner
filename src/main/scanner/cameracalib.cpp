@@ -2,7 +2,7 @@
 
 namespace scanner {
     cameracalib::cameracalib() {};
-    cameracalib::cameracalib(const cv::Size& _board_size, const cv::Size& _square_size, int _ncaps) : board_size(_board_size), square_size(_square_size), ncaps(_ncaps) {};
+    cameracalib::cameracalib(cv::Size board_size_, cv::Size square_size_, int ncaps_) : board_size(board_size_), square_size(square_size_), ncaps(ncaps_) {};
 
     //TODO: read configuration and saved data from files
     void cameracalib::load() {

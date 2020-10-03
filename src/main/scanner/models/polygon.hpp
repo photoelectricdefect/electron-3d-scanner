@@ -8,11 +8,11 @@
 class polygon {
     public:
         std::vector<line_segment> sides;
-        std::vector<Eigen::Vector2f> vertices;
+        std::vector<Eigen::Vector2d> vertices;
 
-        polygon(const std::vector<Eigen::Vector2f>& _vertices);
+        polygon(const std::vector<Eigen::Vector2d>& vertices_);
         rectangle frame();
-		polygon translate(const Eigen::Vector2f& r0);
+		polygon translate(const Eigen::Vector2d& r0);
 };
 
 #endif

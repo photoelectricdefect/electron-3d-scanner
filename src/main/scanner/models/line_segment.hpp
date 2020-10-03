@@ -6,11 +6,11 @@
 class line_segment
 {
 	public:
-		Eigen::Vector2f a, b;
+		Eigen::Vector2d a, b;
 
 		line_segment();
-		line_segment(const Eigen::Vector2f& _a, const Eigen::Vector2f& _b);
-		line_segment translate(const Eigen::Vector2f& r0);
+		line_segment(const Eigen::Vector2d& a_, const Eigen::Vector2d& b_);
+		line_segment translate(const Eigen::Vector2d& r0);
 };
 
 #endif

@@ -17,26 +17,26 @@ namespace scanner {
                         try {
                             auto comm = self->ctx.commandq.dequeue();
 
-                            std::cout << "code: " << comm->code << std::endl; 
-                            std::cout << "cameracalib: " << self->ctx.calibratingcamera << std::endl; 
-                            std::cout << "videoalive: " << self->ctx.video_alive << std::endl; 
+                            // std::cout << "code: " << comm->code << std::endl; 
+                            // std::cout << "cameracalib: " << self->ctx.calibratingcamera << std::endl; 
+                            // std::cout << "videoalive: " << self->ctx.video_alive << std::endl; 
 
                             if(comm->code == COMM_CAMERACALIBSTART) {
-                                if(self->ctx.calibratingcamera) continue;
+                                if(self->ctx.camera.calibrating) continue;
                                 else if(self->ctx.scanning); //TODO
-                                else if(self->ctx.video_alive) {
+                                else if(self->ctx.camera.video_alive) {
                                     std::shared_ptr<command> stop(new command_videostop(self->ctx, COMM_VIDEOSTOP));
                                     stop->execute(stop);
                                 }
                             }
                             else if(comm->code == COMM_CAMERACALIBSTOP) {
-                                if(!self->ctx.calibratingcamera) continue;
+                                if(!self->ctx.camera.calibrating) continue;
                             } 
                             else if(comm->code == COMM_VIDEOSTART) {
-                                if(self->ctx.calibratingcamera || self->ctx.scanning || self->ctx.video_alive) continue;
+                                if(self->ctx.camera.calibrating || self->ctx.scanning || self->ctx.camera.video_alive) continue;
                             } 
                             else if(comm->code == COMM_VIDEOSTOP) {
-                                if(self->ctx.calibratingcamera || self->ctx.scanning || !self->ctx.video_alive) continue;
+                                if(self->ctx.camera.calibrating || self->ctx.scanning || !self->ctx.camera.video_alive) continue;
                             } 
 
                             comm->execute(comm);

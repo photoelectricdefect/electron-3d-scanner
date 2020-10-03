@@ -84,8 +84,8 @@ app.whenReady().then(openIndex).then(() => {
       scanner.sendCommand(JSON.stringify({code: comm}));
      });  
 
-     ipcMain.on('forward-input', (e, kyc) => {
-      scanner.sendInput(JSON.stringify({code: config.commands.input, keycode: kyc}));
+     ipcMain.on('forward-keystroke', (e, kyc) => {
+      scanner.keyboardInput(JSON.stringify({code: config.commands.keystroke, keycode: kyc}));
      });  
 
     scanner.sendCommand(JSON.stringify({code: config.commands.iostart}));

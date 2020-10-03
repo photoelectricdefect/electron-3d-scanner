@@ -2,12 +2,8 @@
 
 	line_segment::line_segment() {};
 
-	line_segment::line_segment(const Eigen::Vector2f& _a, const Eigen::Vector2f& _b)
-	{
-		a = _a;
-		b = _b;
-	}
+	line_segment::line_segment(const Eigen::Vector2d& a_, const Eigen::Vector2d& b_) : a(a_), b(b_) { }
 
-	line_segment line_segment::translate(const Eigen::Vector2f& r0) {
+	line_segment line_segment::translate(const Eigen::Vector2d& r0) {
 		return line_segment(a + r0, b + r0);
 	}

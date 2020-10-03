@@ -14,11 +14,11 @@ namespace scanner {
 
     class status {
         private:
-            std::string _desc;
+            std::string desc_;
         public:
             int code;
 
-            status(int _code, std::string desc);
+            status(int code_, std::string desc);
             std::string desc();
             std::string json();
     };

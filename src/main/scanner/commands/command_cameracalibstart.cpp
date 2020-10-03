@@ -7,7 +7,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <boost/thread.hpp>
-#include <models/event.hpp>
 #include <cameracalib.hpp>
 #include <json.hpp>
 #include <flags.hpp>
@@ -18,10 +17,10 @@ namespace scanner {
     command_cameracalibstart::command_cameracalibstart(scanner& ctx, jcommand jcomm) : command(ctx, jcomm) {};
 
     void command_cameracalibstart::execute(std::shared_ptr<command> self) {
-				ctx.calibratingcamera = true;
-				ctx.camera_alive = true;
-				ctx.video_alive = true;
-				cameracalib calib = self->ctx.calib_camera;
+				ctx.camera.calibrating = true;
+				ctx.camera.thread_alive = true;
+				ctx.camera.video_alive = true;
+				cameracalib calib = self->ctx.camera.calib;
 
                 auto fn = [self, calib]() {
                     cv::VideoCapture cap;
@@ -50,23 +49,27 @@ namespace scanner {
                     cv::Mat frame, gray;
                     bool running = true, interrupted = false;
 					int caps = 0;
-                    self->ctx.camera_inputq.clear();
+                    self->ctx.camera.inputq.clear();
+
+					auto imupdate = [self, &frame]() {
+                    	if(self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
+                	};
 
                     while(running) {
                         try {
                 			boost::this_thread::sleep_for(boost::chrono::milliseconds(1000/FPS_30));   
-							event<int> ev;
+							nlohmann::json input;
 
-							auto readinput = [self, &ev]() {
-								while(!self->ctx.camera_inputq.q.empty())  {
-									if(self->ctx.camera_inputq.q.size() == 1) ev = self->ctx.camera_inputq.q.front();  
+							auto readinput = [self, &input]() {
+								while(!self->ctx.camera.inputq.q.empty())  {
+									if(self->ctx.camera.inputq.q.size() == 1) input = self->ctx.camera.inputq.q.front();  
 
-									self->ctx.camera_inputq.q.pop();
+									self->ctx.camera.inputq.q.pop();
 								}
 							};
 
-							self->ctx.camera_inputq.lock(readinput, self->ctx.camera_inputq.mtx);
-							int keycode = ev.t;
+							self->ctx.camera.inputq.lock(readinput);
+							int keycode = input["keycode"].get<int>();
 							cap.read(frame);
 
 		                    if (frame.empty())
@@ -91,27 +94,25 @@ namespace scanner {
 
                                 cv::drawChessboardCorners(frame, calib.board_size, cv::Mat(pts), found);
                             }
-
-							auto imupdate = [self, &frame]() {
-                    			if(self->ctx.video_alive) self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
-                			};
                 			
-							self->ctx.lock(imupdate, self->ctx.mtx_video_alive); 
+							self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true); 
                         }
                         catch(boost::thread_interrupted&) { running = false; interrupted = true; }
                     }
 
 					if(!interrupted) {
 						cv::Mat rvecs, tvec;
-	                    cv::calibrateCamera(world_pts, img_pts, frame.size(), calib.K, calib.D, rvecs, tvec);
+	                    cv::calibrateCamera(world_pts, img_pts, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec);
 					}
 
-					auto resetvideo = [self]() {
-						self->ctx.commandq.q.push(std::shared_ptr<command>(new command_cameracalibstop(self->ctx, COMM_CAMERACALIBSTOP)));
-						self->ctx.commandq.q.push(std::shared_ptr<command>(new command_videostart(self->ctx, COMM_VIDEOSTART)));				
-					};
+					// auto resetvideo = [self]() {
+					// 	self->ctx.commandq.q.push(std::shared_ptr<command>(new command_cameracalibstop(self->ctx, COMM_CAMERACALIBSTOP)));
+					// 	self->ctx.commandq.q.push(std::shared_ptr<command>(new command_videostart(self->ctx, COMM_VIDEOSTART)));				
+					// };
 
-					self->ctx.commandq.lock(resetvideo, self->ctx.commandq.mtx);
+					// self->ctx.commandq.lock(resetvideo, self->ctx.commandq.mtx);
+
+					self->ctx.commandq.enqueue(std::shared_ptr<command>(new command_cameracalibstop(self->ctx, COMM_CAMERACALIBSTOP)));
 				};
 
                 nlohmann::json j;
@@ -121,8 +122,7 @@ namespace scanner {
                 j["prop"] = PROP_VIDEOALIVE;
                 j["value"] = true;
                 ctx.stremit(EV_PROPCHANGED, j.dump(), true);    
-                //ctx.stremit(EV_VIDEOSTART, "", true);
                 ctx.stremit(EV_CAMERACALIBSTART, "", true);
-                ctx.thread_camera = boost::thread{fn};
+                ctx.camera.thread_camera = boost::thread{fn};
     }
 }

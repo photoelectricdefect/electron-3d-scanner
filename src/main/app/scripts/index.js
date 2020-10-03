@@ -5,7 +5,8 @@ const { ipcRenderer } = require('electron');
 var index = () => {
     let video = document.getElementById("video");
     let videobtn = document.getElementById("video-btn");
-    let calibbtn = document.getElementById("calibration-btn");
+    let camCalibBtn = document.getElementById("camera-calibration-btn");
+    let scannerCalibBtn = document.getElementById("scanner-calibration-btn");
     
     //TODO: bind these to events emitted by scanner module
 
@@ -22,11 +23,11 @@ var index = () => {
 
     const videoalivechanged = (val) => {
         if(val) {
-            videobtn.textContent = "Stop Video";
+            videobtn.textContent = "Stop";
             ipcRenderer.on("imupdate", showImage);                    
         }
         else {
-            videobtn.textContent = "Start Video";
+            videobtn.textContent = "Start";
             ipcRenderer.removeListener("imupdate", showImage);
             video.setAttribute(
                 'src', ""
@@ -37,9 +38,18 @@ var index = () => {
     };
 
     const calibratingcamerachanged = (val) => {
+        if(val) camCalibBtn.textContent = "Stop";
+        else camCalibBtn.textContent = "Start";
+
         calibratingcamera = val;
     };
 
+    const calibratingscannerchanged = (val) => {
+        if(val) scannerCalibBtn.textContent = "Stop";
+        else scannerCalibBtn.textContent = "Start";
+
+        calibratingscanner = val;
+    };
 
     const stopvideo = () => {    
         if(calibratingcamera || calibratingscanner || scanning) setprop(config.properties.videoalive, false); 
@@ -52,29 +62,22 @@ var index = () => {
     };
 
     const startcameracalib = () => {
-        //videobtn.textContent = "Stop Camera Calibration";
         ipcRenderer.send("forward-command", config.commands.cameracalibstart);
-        //TODO: register
     };
 
     const stopcameracalib = () => {
-        //videobtn.textContent = "Start Camera Calibration";
         ipcRenderer.send("forward-command", config.commands.cameracalibstop);
-        //TODO: register
     };
 
-
-
-
     const startscannercalib = () => {
-        ipcRenderer.send("forward-command", config.commands.startcameracalib);
-        //TODO: register
+        ipcRenderer.send("forward-command", config.commands.scannercalibstart);
     };
 
     const stopscannercalib = () => {
-        ipcRenderer.send("forward-command", config.commands.stopcameracalib);
-        //TODO: register
+        ipcRenderer.send("forward-command", config.commands.scannercalibstop);
     };
+
+
 
     const startscanning = () => {
         ipcRenderer.send("forward-command", config.commands.startcameracalib);
@@ -97,7 +100,7 @@ var index = () => {
     return {
         init: () => {      
             document.addEventListener("keyup", (e) => {
-                if(e.keyCode == keycodes.space) ipcRenderer.send("forward-input", keycodes.space);
+                if(e.keyCode == keycodes.space) ipcRenderer.send("forward-keystroke", keycodes.space);
             });
             
             videobtn.addEventListener("click", (e) => {
@@ -105,11 +108,16 @@ var index = () => {
                 else startvideo();
             });
 
-            calibbtn.addEventListener("click", (e) => {
+            camCalibBtn.addEventListener("click", (e) => {
                 if(calibratingcamera) stopcameracalib();
                 else startcameracalib();
             });
       
+            scannerCalibBtn.addEventListener("click", (e) => {
+                if(calibratingscanner) stopscannercalib();
+                else startscannercalib();
+            });
+
             ipcRenderer.on(config.events.propchanged, (e, msg) => {
                 console.log(msg);
                 separator();
@@ -118,6 +126,8 @@ var index = () => {
                     videoalivechanged(msg.value);
                 if(msg.prop == config.properties.calibratingcamera) 
                     calibratingcamerachanged(msg.value);
+                if(msg.prop == config.properties.calibratingscanner)
+                    calibratingscannerchanged(msg.value);
             });
         }
     };

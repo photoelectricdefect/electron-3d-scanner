@@ -7,36 +7,39 @@
 #include <models/shared_queue.hpp>
 #include <commands/command.hpp>
 #include <cameracalib.hpp>
-#include <models/event.hpp>
+#include <scannercalib.hpp>
+#include <microcontroller.hpp>
+#include <camera.hpp>
 #include <string>
 #include <memory>
+
+using camera_ = scanner::camera;
 
 namespace scanner {
     class scanner {
         public:            
-            boost::thread threadIO, thread_camera, thread_table;
-            boost::mutex mtx_video_alive, mtx_cameracalib;
-            bool IOalive, camera_alive, video_alive,
-                scanning, calibratingcamera;
+            boost::thread threadIO;
+            bool IOalive, scanning, calibrating;
             shared_queue<std::shared_ptr<command>> commandq;
-            shared_queue<event<int>> camera_inputq, table_inputq;
-            cameracalib calib_camera;
-            
+            camera_ camera;
+            microcontroller controller;
+            scannercalib calib;
+
             scanner();
             //move these to their own command objects
             //--------
             void scan_start();
             void scan_stop();
             void load_point_cloud();
-            void setprop();
             //--------
 
             void invokeIO(std::shared_ptr<command> comm, bool blocking);
             void stremit(std::string e, std::string msg, bool blocking);
 
             template<typename F>
-            void lock(F& fn, boost::mutex& mtx) {
-                boost::unique_lock<boost::mutex> lock(mtx);
+            void lock(F& fn, boost::shared_mutex& mtx, bool shared) {
+                if(shared) boost::shared_lock<boost::shared_mutex> lock(mtx);  
+                else boost::unique_lock<boost::shared_mutex> lock(mtx);
                 fn();
             }
     };

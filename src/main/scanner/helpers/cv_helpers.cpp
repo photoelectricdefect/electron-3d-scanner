@@ -18,7 +18,7 @@ uint8_t get_px(const cv::Mat& img, int x, int y) {
 	return img.ptr<uint8_t>(y)[x];
 }
 
-cv::Vec3b get_px_3C(const cv::Mat& img, int x, int y) {
+cv::Vec3b get_px3C(const cv::Mat& img, int x, int y) {
 	return img.ptr<cv::Vec3b>(y)[x];
 }
 
@@ -38,26 +38,27 @@ void sharpen(const cv::Mat& img, const cv::Mat& sharpened, float alpha, int thre
 // 	return sigma;
 // }
 
-bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& sides) {
-			int intersections = 0;
-			Eigen::Vector2f O(0, a(1));
-			bool on_line = false;
+double cross2D(const Eigen::Vector2d& u, const Eigen::Vector2d& v)
+{
+	return u(0) * v(1) - v(0) * u(1);
+}
 
-			auto cross_2D = [](const Eigen::Vector2f& u, const Eigen::Vector2f& v) {					
-					return u(0) * v(1) - v(0) * u(1);
-			};
+bool inside_polygon(const Eigen::Vector2d& a, const std::vector<line_segment>& sides) {
+			int intersections = 0;
+			Eigen::Vector2d O(0, a(1));
+			bool on_line;
 
 			for(int i = 0; i < sides.size(); i++) {
-				Eigen::Vector2f pq = O - sides[i].a,
+				Eigen::Vector2d pq = O - sides[i].a,
 				r = sides[i].b - sides[i].a,
 				s = a - O;
-				float e = cross_2D(pq, r),
-				b = cross_2D(pq, s),
-				c = cross_2D(r, s);
+				double e = cross2D(pq, r),
+				b = cross2D(pq, s),
+				c = cross2D(r, s);
 
 				if (c != 0)
 				{
-					float t = b / c,
+					double t = b / c,
 					u = e / c;
 
 					if (0 <= t && t <= 1 &&
@@ -77,12 +78,12 @@ bool inside_polygon(const Eigen::Vector2f& a, const std::vector<line_segment>& s
 			return false;
 }
 
-void cut(cv::Mat& mask, const cv::Size& img_size, const std::vector<line_segment>& borders) {
+void cut(cv::Mat& mask, cv::Size img_size, const std::vector<line_segment>& borders) {
 	mask = cv::Mat(img_size, CV_8UC1);
 
 	for(int i = 0; i < img_size.height; i++) {
 		for(int j = 0; j < img_size.width; j++) {
-			bool inside = inside_polygon(Eigen::Vector2f(j, i), borders);
+			bool inside = inside_polygon(Eigen::Vector2d(j, i), borders);
 
 			if(!inside) set_px(mask, j, i, MIN_INTENSITY);
 			else set_px(mask, j, i, MAX_INTENSITY);
@@ -124,12 +125,12 @@ float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int threshol
 	return t;
 }
 
-void PCA(cv::Mat& data, Eigen::MatrixXf& V, Eigen::MatrixXf& D, Eigen::Vector2f& O) {
+void PCA(cv::Mat& data, Eigen::MatrixXd& V, Eigen::MatrixXd& D, Eigen::Vector2d& O) {
 	cv::PCA pca(data, cv::Mat(), cv::PCA::DATA_AS_ROW);
 	Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> v(pca.eigenvectors.ptr<double>(), data.cols, data.cols);
-	V = v.cast<float>();
-	O = Eigen::Vector2f(pca.mean.ptr<double>(0)[0], pca.mean.ptr<double>(0)[1]);
-	D = Eigen::MatrixXf(data.cols, data.cols);
+	V = v;
+	O = Eigen::Vector2d(pca.mean.ptr<double>(0)[0], pca.mean.ptr<double>(0)[1]);
+	D = Eigen::MatrixXd(data.cols, data.cols);
 
 	for(int i = 0; i < data.cols; i++) {		
 		D(i, i) = *pca.eigenvalues.ptr<double>(i);
