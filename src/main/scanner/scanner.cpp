@@ -12,16 +12,18 @@
 #include <commands/command_cameracalibstop.hpp>
 #include <commands/command_scannercalibstart.hpp>
 #include <commands/command_scannercalibstop.hpp>
+#include <commands/command_scanstart.hpp>
+#include <commands/command_scanstop.hpp>
 #include <commands/command_lambda.hpp>
 #include <boost/thread.hpp>
 #include <flags.hpp>
 
 namespace scanner {  
             scanner::scanner() {
+                calib.load();
+                scconf.load();
             }
 
-            void scanner::scan_start() {}
-            void scanner::scan_stop() {}
             void scanner::load_point_cloud() {}
 
             void scanner::invokeIO(std::shared_ptr<command> comm, bool blocking) {  
@@ -76,6 +78,12 @@ void send_command(const Napi::CallbackInfo& info) {
         case COMM_CAMERACALIBSTOP:
             sc.invokeIO(std::shared_ptr<command>(new command_cameracalibstop(sc, jcomm)), true);
             break;            
+        case COMM_SCANSTART:
+            sc.invokeIO(std::shared_ptr<command>(new command_scanstart(sc, jcomm)), true);
+            break; 
+        case COMM_SCANSTOP:
+            sc.invokeIO(std::shared_ptr<command>(new command_scanstop(sc, jcomm)), true);
+            break; 
     }
 }
 

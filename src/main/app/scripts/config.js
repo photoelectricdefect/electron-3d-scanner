@@ -7,10 +7,10 @@ const events =  {
     iostart: "iostart",
     iostop: "iostop",
     propchanged: "propchanged",
-    cameracalibstart = "cameracalibstart",
-    cameracalibstop = "cameracalibstop",
-    scannercalibstart = "scannercalibstart",
-    scannercalibstop = "scannercalibstop"
+    cameracalibstart: "cameracalibstart",
+    cameracalibstop: "cameracalibstop",
+    scannercalibstart: "scannercalibstart",
+    scannercalibstop: "scannercalibstop"
 };
   
   const commands =  {

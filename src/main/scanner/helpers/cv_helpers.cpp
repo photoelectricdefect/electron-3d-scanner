@@ -75,6 +75,7 @@ bool inside_polygon(const Eigen::Vector2d& a, const std::vector<line_segment>& s
 			}	
 
 			if(intersections % 2 > 0 && !on_line) return true;
+			
 			return false;
 }
 

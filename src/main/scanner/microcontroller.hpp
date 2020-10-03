@@ -18,6 +18,7 @@ namespace scanner {
             void serial_open();
             void serial_close();
             void serial_writeln(std::string str);
+            bool serial_is_open();
             std::string serial_readln();
             void serial_set_timeout(int timeout);
             static std::string format(std::string identifier, int value);            

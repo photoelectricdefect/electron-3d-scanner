@@ -48,14 +48,14 @@ void ODR_plane_fit(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperpl
 		ROI = cv::Rect(0, 0, 0, 0);
 		int max_i = img.size().height - win_size,
 		max_j = img.size().width - win_size;
-		float max_mean_len = -FLT_MAX;
+		double max_mean_len = -FLT_MAX;
 
 		for(int i = 0; i <= max_i; i += step) {
 			for(int j = 0; j <= max_j; j += step) {
 				cv::Rect roi(j, i, win_size, win_size);
 				cv::Scalar mean = cv::mean(img(roi));
 				cv::pow(mean, 2, mean);
-				float mean_len = sqrt(cv::sum(mean)(0));
+				double mean_len = sqrt(cv::sum(mean)(0));
 
 				if(mean_len > max_mean_len) {
 					max_mean_len = mean_len;
@@ -112,7 +112,6 @@ void ODR_plane_fit(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperpl
 	
 		Eigen::Vector2d p = V.row(0);
 		p.normalize();
-
 		std::vector<line_segment> borders; 
         int idxB = board_size.width - 1, idxC = (board_size.height - 1) * board_size.width,  
 		idxD = board_size.width * board_size.height - 1;
@@ -167,10 +166,8 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
     ctx.calibrating = true;
     ctx.camera.video_alive = true;
     ctx.camera.thread_alive = true;
-    cameracalib camcalib = ctx.camera.calib;
-    scannercalib sccalib = ctx.calib;
 
-    auto fn = [self, camcalib, sccalib]() {
+    auto fn = [self, camcalib = ctx.camera.calib, sccalib = ctx.calib]() {
         cv::VideoCapture cap;
         cap.open(0);
 
@@ -244,19 +241,18 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                 int keycode = input["keycode"].get<int>();
 
                 if (keycode == KEYCODE_SPACE) {
-                    if(!self->ctx.controller.serial_port.isOpen()) self->ctx.controller.serial_open();
+                    if(!self->ctx.controller.serial_is_open()) self->ctx.controller.serial_is_open();
 
-                    if(!self->ctx.controller.serial_port.isOpen()) {
+                    if(!self->ctx.controller.serial_is_open()) {
                         //TODO: report closed
                         continue;
                     }
 
-                    //TODO: after everything works and is completed, use solvePnP only on one image since its not expected to move while capturing the laser/nolaser image pair
                     cv::Mat imlaser, imnolaser, gray, rvecs, tvec;
                     std::vector<cv::Point2d> img_pts;
                     nlohmann::json response;
 
-                    if(self->ctx.controller.serial_port.isOpen()) {
+                    if(self->ctx.controller.serial_is_open()) {
                         try {
                             self->ctx.controller.serial_writeln(microcontroller::format("laseralive", 0));
                             self->ctx.controller.serial_set_timeout(1000);
@@ -288,7 +284,7 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     if (!foundcorners || !solved)
                         continue;
 
-                    if(self->ctx.controller.serial_port.isOpen()) {
+                    if(self->ctx.controller.serial_is_open()) {
                         try {
                             self->ctx.controller.serial_writeln(microcontroller::format("laseralive", 1));
                             self->ctx.controller.serial_set_timeout(1000);
@@ -429,9 +425,9 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                                     b(img_pts[b_idx].x, img_pts[b_idx].y),
                                     c(img_pts[c_idx].x, img_pts[c_idx].y);
 
-                                float Q = math_helpers::cross_ratio(A(0), B(0), C(0),
+                                double Q = math_helpers::cross_ratio(A(0), B(0), C(0),
                                     0, (b - a).norm(), (c - a).norm(), (intersection - a).norm());
-                                Eigen::Vector3d world_pt(Q, y, 1), camera_pt = H * world_pt;
+                                Eigen::Vector3d hmg_world_pt(Q, y, 1), camera_pt = H * hmg_world_pt;
 
                                 // std::cout << "world point horitontal: " << std::endl
                                 //           << world_pt << std::endl;

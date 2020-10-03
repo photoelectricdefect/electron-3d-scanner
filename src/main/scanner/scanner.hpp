@@ -8,6 +8,7 @@
 #include <commands/command.hpp>
 #include <cameracalib.hpp>
 #include <scannercalib.hpp>
+#include <scanconfig.hpp>
 #include <microcontroller.hpp>
 #include <camera.hpp>
 #include <string>
@@ -19,17 +20,16 @@ namespace scanner {
     class scanner {
         public:            
             boost::thread threadIO;
-            bool IOalive, scanning, calibrating;
+            bool IOalive, scanning, calibrating, calibrated;
             shared_queue<std::shared_ptr<command>> commandq;
             camera_ camera;
             microcontroller controller;
             scannercalib calib;
+            scanconfig scconf;
 
             scanner();
             //move these to their own command objects
             //--------
-            void scan_start();
-            void scan_stop();
             void load_point_cloud();
             //--------
 

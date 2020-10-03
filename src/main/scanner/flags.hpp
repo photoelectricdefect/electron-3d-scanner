@@ -22,9 +22,8 @@ namespace scanner {
     const int PROP_VIDEOALIVE = 0,
                 PROP_CALIBRATINGCAMERA = 1,
                 PROP_CALIBRATINGSCANNER = 2,
-                PROP_SCANNING = 3,
-                PROP_SCANNERALIVE = 4;
-
+                PROP_SCANNING = 3;
+                
     const int KEYCODE_SPACE = 32;
 
     const int

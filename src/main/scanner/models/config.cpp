@@ -1,5 +1,7 @@
 #include <models/config.hpp>
 
+
+//TODO: move to cameracalib
 namespace scanner {
     void to_json(nlohmann::json& j, const calib_data& data) {
         j = nlohmann::json{{ "K", data.K }, { "D", data.D }};

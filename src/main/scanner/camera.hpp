@@ -11,7 +11,7 @@ namespace scanner {
         public:
             boost::thread thread_camera;
             boost::shared_mutex mtx_video_alive;
-            bool thread_alive, video_alive, calibrating;
+            bool thread_alive, video_alive, calibrating, calibrated;
             shared_queue<nlohmann::json> inputq;
             cameracalib calib;
 
