@@ -37,7 +37,7 @@ void command_scanstart::execute(std::shared_ptr<command> self)
             bool running = true;
 
             auto imupdate = [self, &frame]() {
-                if (self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
+                if (self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
             };
 
             while (running) {
@@ -73,7 +73,9 @@ void command_scanstart::execute(std::shared_ptr<command> self)
 
             if(self->ctx.controller.serial_is_open()) {
                 try {
-                    self->ctx.controller.serial_writeln(microcontroller::format("angle", conf.direction));
+                    std::string comm = microcontroller::format("turn") +
+                        microcontroller::format("angle", scanconfig::STEP) + microcontroller::format("angle", scanconfig::CLOCKWISE);
+                    self->ctx.controller.serial_writeln(microcontroller::format("angle", comm));
                     self->ctx.controller.serial_set_timeout(1000);
                     response = self->ctx.controller.serial_readln();
                 }

@@ -183,7 +183,7 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
             bool running = true;
 
             auto imupdate = [self, &frame]() {
-                if (self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
+                if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
             };
 
             while (running) {
@@ -227,17 +227,19 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
         while (running) {
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-                nlohmann::json input;
+                //nlohmann::json input;
 
-                auto readinput = [self, &input]() {
-                    while (!self->ctx.camera.inputq.q.empty()) {
-                        if (self->ctx.camera.inputq.q.size() == 1) input = self->ctx.camera.inputq.q.front();
+                // auto readinput = [self, &input]() {
+                //     while (!self->ctx.camera.inputq.q.empty()) {
+                //         if (self->ctx.camera.inputq.q.size() == 1) input = self->ctx.camera.inputq.q.front();
 
-                        self->ctx.camera.inputq.q.pop();
-                    }
-                };
+                //         self->ctx.camera.inputq.q.pop();
+                //     }
+                // };
 
-                self->ctx.camera.inputq.lock(readinput);
+                // self->ctx.camera.inputq.lock(readinput);
+                
+                auto input = self->ctx.camera.inputq.dequeue(); 
                 int keycode = input["keycode"].get<int>();
 
                 if (keycode == KEYCODE_SPACE) {
@@ -439,7 +441,8 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                             }
                         }
 
-                        self->ctx.stremit(EV_SCANNERCALIBIMAGECAPTURED, cv_helpers::mat2base64str(imlaser), true);
+
+                        self->ctx.imemit(EV_SCANNERCALIBIMAGECAPTURED, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(imlaser))), true);
                     }
                 }
             }

@@ -22,6 +22,7 @@ namespace scanner {
             std::string serial_readln();
             void serial_set_timeout(int timeout);
             static std::string format(std::string identifier, int value);            
+            static std::string format(std::string identifier, float value);            
             static std::string format(std::string identifier);            
     };
 }

@@ -2,6 +2,7 @@
 #define CAMERACALIB_H_
 
 #include <opencv2/highgui.hpp>
+#include <json.hpp>
 
 namespace scanner {
     struct jcameracalib {

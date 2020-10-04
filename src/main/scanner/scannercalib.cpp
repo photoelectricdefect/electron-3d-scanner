@@ -1,4 +1,5 @@
 #include <scannercalib.hpp>
+#include <fstream>
 
 namespace scanner {
     scannercalib::scannercalib() {};
@@ -46,16 +47,16 @@ void scannercalib::save(std::string fpath) {
 }
 
 //For now manually init 
-    void /*scannercalib::*/load(std::string fpath) {
-    std::ifstream file(fpath);
-    nlohmann::json j;
-    file >> j;
-    file.close();
-    jscannercalib data = j.get<jscannercalib>();
+    // void /*scannercalib::*/load(std::string fpath) {
+    // std::ifstream file(fpath);
+    // nlohmann::json j;
+    // file >> j;
+    // file.close();
+    // jscannercalib data = j.get<jscannercalib>();
 
-    //Handle no existing save data
+    // //Handle no existing save data
 
-    board_size = cv::Size(data.board_size[0], data.board_size[1]);
-    square_size = cv::Size(data.square_size[0], data.square_size[1]);
-    }
+    // board_size = cv::Size(data.board_size[0], data.board_size[1]);
+    // square_size = cv::Size(data.square_size[0], data.square_size[1]);
+    // }
 }

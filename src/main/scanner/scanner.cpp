@@ -1,6 +1,5 @@
 #include <scanner.hpp>
 #include <base64.h>
-#include <models/config.hpp>
 #include <helpers/cv_helpers.hpp>
 #include <helpers/math_helpers.hpp>
 #include <commands/command.hpp>
@@ -100,21 +99,39 @@ void keyboard_input(const Napi::CallbackInfo& info) {
 }
 
 Napi::ThreadSafeFunction stremitTSFN;
-void _stremit(const Napi::CallbackInfo& info) {
-    Napi::String e = info[0].As<Napi::String>();
-    Napi::String msg = info[1].As<Napi::String>();
-    auto it = ev_handlers.find(e.Utf8Value());
+// void _stremit(const Napi::CallbackInfo& info) {
+//     Napi::String e = info[0].As<Napi::String>();
+//     Napi::String msg = info[1].As<Napi::String>();
+//     auto it = ev_handlers.find(e.Utf8Value());
     
-    if(it != ev_handlers.end()) it->second.Value().Call({msg});
-};
+//     if(it != ev_handlers.end()) it->second.Value().Call({msg});
+// };
 //FIX: after a while data seems to be buffered when sending large strings rapidly, as the RAM usage starts to increase; no idea why
 void scanner::stremit(std::string e, std::string msg, bool blocking) {    
     auto callback = [e, msg]( Napi::Env env, Napi::Function jscb) {
-      jscb.Call( { Napi::String::New(env, e), Napi::String::New(env, msg) });
+      //jscb.Call( { Napi::String::New(env, e), Napi::String::New(env, msg) });
+
+        // Napi::String e = info[0].As<Napi::String>();
+        // Napi::String msg = info[1].As<Napi::String>();
+        auto it = ev_handlers.find(e);
+    
+        if(it != ev_handlers.end()) it->second.Value().Call({Napi::String::New(env, msg)});
     };
 
     if(blocking) stremitTSFN.BlockingCall(callback);
     else stremitTSFN.NonBlockingCall(callback);
+}
+
+Napi::ThreadSafeFunction imemitTSFN;
+void scanner::imemit(std::string e, std::shared_ptr<std::string> imbase64, bool blocking) {    
+    auto callback = [e, imbase64]( Napi::Env env, Napi::Function jscb) {
+        auto it = ev_handlers.find(e);
+    
+        if(it != ev_handlers.end()) it->second.Value().Call({Napi::String::New(env, *imbase64)});
+    };
+
+    if(blocking) imemitTSFN.BlockingCall(callback);
+    else imemitTSFN.NonBlockingCall(callback);
 }
 
 void setprop(const Napi::CallbackInfo& info) {
@@ -145,8 +162,42 @@ void setprop(const Napi::CallbackInfo& info) {
     }
 }
 
-void getprop() {
-//TODO: use promises
+Napi::Value getprop(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    int prop = info[0].As<Napi::Number>().Int32Value();
+    
+    struct tsfn_ctx {
+        tsfn_ctx(Napi::Env env) : deferred(Napi::Promise::Deferred::New(env)) {};
+
+        Napi::Promise::Deferred deferred;
+        Napi::ThreadSafeFunction tsfn;
+    };
+
+    std::shared_ptr<tsfn_ctx> ctx(new tsfn_ctx(env));
+    ctx->tsfn = Napi::ThreadSafeFunction::New(env,  
+    Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), 
+    "getprop", 0, 1); 
+
+    auto comm = [ctx, prop]() {
+        auto getprop = [ctx, prop](Napi::Env env, Napi::Function jscb) {
+            switch(prop) {
+                case PROP_VIDEOALIVE:
+                    auto getval = [ctx, &prop]() {
+                        ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.video_alive));
+                    };
+
+                    sc.lock(getval, sc.camera.mtx_video_alive, true);       
+                    break;
+            }
+        };
+
+        ctx->tsfn.NonBlockingCall(getprop);
+        ctx->tsfn.Release();
+    };
+
+    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, COMM_GETPROP, comm)), true);
+
+    return ctx->deferred.Promise();
 }
 
 Napi::Object init(Napi::Env env, Napi::Object exports) {
@@ -160,7 +211,9 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
                     Napi::Function::New(env, keyboard_input));
     exports.Set(Napi::String::New(env, "setProp"), 
                     Napi::Function::New(env, setprop));
-    stremitTSFN = Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1);
+    // stremitTSFN = Napi::ThreadSafeFunction::New(env, Napi::Function::New<_stremit>(env), "stremit", 0, 1);
+    stremitTSFN = Napi::ThreadSafeFunction::New(env,  Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), "stremit", 0, 1);
+    imemitTSFN = Napi::ThreadSafeFunction::New(env,  Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), "imemit", 5, 1);
 
     return exports;
 }

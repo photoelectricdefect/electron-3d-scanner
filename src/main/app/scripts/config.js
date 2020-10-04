@@ -10,7 +10,9 @@ const events =  {
     cameracalibstart: "cameracalibstart",
     cameracalibstop: "cameracalibstop",
     scannercalibstart: "scannercalibstart",
-    scannercalibstop: "scannercalibstop"
+    scannercalibstop: "scannercalibstop",
+    scanstart: "scanstart",
+    scanstop: "scanstop"
 };
   
   const commands =  {

@@ -27,7 +27,7 @@ namespace scanner {
 	        bool running = true;
 
             auto imupdate = [self, &frame]() {
-                if(self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, cv_helpers::mat2base64str(frame), true);
+                if(self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
             };
 
             while(running) {

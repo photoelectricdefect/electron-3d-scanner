@@ -31,6 +31,10 @@ namespace scanner {
         return identifier + ":" + value + ";";
     }            
 
+    std::string microcontroller::format(std::string identifier, float value) {
+        return identifier + ":" + value + ";";
+    }       
+
     std::string microcontroller::format(std::string identifier) {
         return identifier + ";";
     }  
