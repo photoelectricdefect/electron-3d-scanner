@@ -15,10 +15,15 @@ var index = () => {
     let calibratingscanner = false;
     let scanning = false;
 
+    //https://stackoverflow.com/questions/9913765/rapidly-updating-image-with-data-uri-causes-caching-memory-leak
+    const URL = window.URL || window.webkitURL;
+    let frame;
     const showImage = (e, base64) => {
-        video.setAttribute(
-            'src', "data:image/jpeg;base64, " + base64
-        );
+        if(frame) URL.revokeObjectURL(frame); 
+        
+        let blob = new Blob([base64], {type: "image/jpeg"});
+        frame = URL.createObjectURL(blob);
+        video.src = frame;
     };
 
     const videoalivechanged = (val) => {

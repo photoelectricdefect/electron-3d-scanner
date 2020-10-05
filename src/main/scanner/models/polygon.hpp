@@ -4,6 +4,7 @@
 #include <models/rectangle.hpp>
 #include <Eigen/Dense>
 #include <models/line_segment.hpp>
+#include <vector>
 
 class polygon {
     public:

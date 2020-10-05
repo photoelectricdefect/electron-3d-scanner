@@ -1,6 +1,7 @@
 #include <json.hpp>
 #include <boost/thread.hpp>
 #include <cameracalib.hpp>
+#include <models/shared_queue.hpp>
 #include <string>
 
 #ifndef CAMERA_H_

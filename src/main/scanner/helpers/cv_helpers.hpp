@@ -20,7 +20,9 @@ bool inside_polygon(const Eigen::Vector2d& a, const std::vector<line_segment>& s
 void cut(cv::Mat& mask, cv::Size img_size, const std::vector<line_segment>& borders);
 void crop(const cv::Mat& img,  cv::Mat& cropped, const Eigen::Vector2d& q,  const Eigen::Vector2d& s);
 // static float masked_threshold(cv::Mat& img, cv::Mat mask, int type, int threshold);
+size_t mat2buffer(cv::Mat& img, uint8_t*& data);
 std::string mat2base64str(cv::Mat& img);
+size_t mat2base64(cv::Mat& img, char*& data);
 void PCA(cv::Mat& data, Eigen::MatrixXd& V, Eigen::MatrixXd& D, Eigen::Vector2d& O);
 
 }

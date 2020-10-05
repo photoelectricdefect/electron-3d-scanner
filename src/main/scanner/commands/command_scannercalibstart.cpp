@@ -160,6 +160,7 @@ void ODR_plane_fit(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperpl
 		return true;
 	}
 
+//TODO: Fix the 100000 warnings Eigen throws
 //TODO: Think about whether automatic calibration is necessary instead of manual by capturing images by user
 void command_scannercalibstart::execute(std::shared_ptr<command> self)
 {
@@ -182,10 +183,6 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
             cv::Mat frame;
             bool running = true;
 
-            auto imupdate = [self, &frame]() {
-                if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
-            };
-
             while (running) {
                 try {
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
@@ -197,6 +194,12 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                         std::cerr << "empty frame grabbed" << std::endl;
                         continue;
                     }
+
+                    auto imupdate = [self, &frame]() {
+						uint8_t* data;
+						auto len = cv_helpers::mat2buffer(frame, data);
+                        if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, data, len, true);
+                    };
 
                     self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true);
                 }
@@ -441,8 +444,9 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                             }
                         }
 
-
-                        self->ctx.imemit(EV_SCANNERCALIBIMAGECAPTURED, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(imlaser))), true);
+						uint8_t* data;
+						auto len = cv_helpers::mat2buffer(imlaser, data);
+                        self->ctx.imemit(EV_SCANNERCALIBIMAGECAPTURED, data, len, true);
                     }
                 }
             }

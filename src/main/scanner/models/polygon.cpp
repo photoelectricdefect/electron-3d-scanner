@@ -1,4 +1,5 @@
 #include <models/polygon.hpp>
+#include <cfloat>
 
         polygon::polygon(const std::vector<Eigen::Vector2d>& vertices_) : vertices(vertices_) {
             for(int i = 1; i < vertices.size(); i++) {
@@ -9,8 +10,8 @@
         }
 
         rectangle polygon::frame() {
-			double min_x = FLT_MAX , max_x = -FLT_MAX,
-			 min_y = FLT_MAX, max_y = -FLT_MAX;
+			double min_x = DBL_MAX , max_x = -DBL_MAX,
+			 min_y = DBL_MAX, max_y = -DBL_MAX;
 				
 					for(int i = 0; i < vertices.size(); i++) {
 						if(vertices[i](0) < min_x) {
@@ -27,7 +28,7 @@
 						}
 					}		
 			
-			return rectangle(Eigen::Vector2f(min_x, min_y), Eigen::Vector2d(max_x, max_y));
+			return rectangle(Eigen::Vector2d(min_x, min_y), Eigen::Vector2d(max_x, max_y));
         }
 
 		polygon polygon::translate(const Eigen::Vector2d& r0) {		

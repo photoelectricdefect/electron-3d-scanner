@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <iostream>
 
 namespace cv_helpers {
 
@@ -138,11 +139,28 @@ void PCA(cv::Mat& data, Eigen::MatrixXd& V, Eigen::MatrixXd& D, Eigen::Vector2d&
 	}
 }
 
+size_t mat2buffer(cv::Mat& img, uint8_t*& data) {
+    std::vector<uint8_t> buf;
+    cv::imencode(".jpg", img, buf);
+	data = new uint8_t[buf.size()];
+	std::copy(buf.begin(), buf.end(), data);
+
+    return buf.size();
+}
+
 std::string mat2base64str(cv::Mat& img) {
     std::vector<uint8_t> buf;
     cv::imencode(".jpg", img, buf);
     auto *enc = reinterpret_cast<unsigned char*>(buf.data());
     return base64_encode(enc, buf.size());
+}
+
+size_t mat2base64(cv::Mat& img, char*& data) {
+    auto str = mat2base64str(img);
+	data = new char[str.length()];
+	std::copy( str.begin(), str.end(), data );
+	// std::cout << data << std::endl;
+	return str.length();
 }
 
 // //Should keep??

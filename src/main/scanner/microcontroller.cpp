@@ -1,6 +1,8 @@
 #include <microcontroller.hpp>
 
 namespace scanner {
+
+    microcontroller::microcontroller() {}
     microcontroller::microcontroller(std::string devname_, unsigned int baud_) : devname(devname_), baud(baud_)  {}
 
     void microcontroller::serial_open() {
@@ -28,11 +30,15 @@ namespace scanner {
     }  
 
     std::string microcontroller::format(std::string identifier, int value) {
-        return identifier + ":" + value + ";";
+        std::ostringstream s;
+        s << identifier << ":" << value << ";";
+        return s.str();
     }            
 
     std::string microcontroller::format(std::string identifier, float value) {
-        return identifier + ":" + value + ";";
+        std::ostringstream s;
+        s << identifier << ":" << value << ";";
+        return s.str();
     }       
 
     std::string microcontroller::format(std::string identifier) {

@@ -22,13 +22,6 @@ namespace scanner {
 
     }
 
-    //TODO: read configuration and saved data from files
-    void scannercalib::load() {
-        board_size = cv::Size(9, 6);
-        square_size = cv::Size(23, 23);
-        //ncaps = 20;
-    }
-
 void scannercalib::save(std::string fpath) {
     std::vector<double> square_size_;
     std::vector<int> board_size_;

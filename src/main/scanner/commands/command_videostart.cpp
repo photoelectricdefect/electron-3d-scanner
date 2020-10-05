@@ -26,10 +26,6 @@ namespace scanner {
 	        cv::Mat frame;
 	        bool running = true;
 
-            auto imupdate = [self, &frame]() {
-                if(self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
-            };
-
             while(running) {
                 try{             
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000/FPS_30));   
@@ -40,6 +36,12 @@ namespace scanner {
 			        std::cerr << "empty frame grabbed" << std::endl;
 			        continue;
 		        }
+
+                auto imupdate = [self, &frame]() {
+					uint8_t* data;
+					auto len = cv_helpers::mat2buffer(frame, data);
+                    if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, data, len, true);
+                };
 
                 self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true);    
                 }

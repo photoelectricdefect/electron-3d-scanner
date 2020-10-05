@@ -1,27 +1,27 @@
-#include <models/status.hpp>
+// #include <models/status.hpp>
 
-namespace scanner {
-    void to_json(nlohmann::json& j, const jstatus& data) {
-        j = nlohmann::json{{ "desc", data.desc }, { "code", data.code }};
-    }
+// namespace scanner {
+//     void to_json(nlohmann::json& j, const jstatus& data) {
+//         j = nlohmann::json{{ "desc", data.desc }, { "code", data.code }};
+//     }
 
-    void from_json(const nlohmann::json& j, jstatus& data) {
-        j.at("desc").get_to(data.desc);
-        j.at("code").get_to(data.code);
-    }
+//     void from_json(const nlohmann::json& j, jstatus& data) {
+//         j.at("desc").get_to(data.desc);
+//         j.at("code").get_to(data.code);
+//     }
 
-    status::status(int _code, std::string desc) {
-        code = _code;
-        _desc = desc;
-    }
+//     status::status(int _code, std::string desc) {
+//         code = _code;
+//         _desc = desc;
+//     }
 
-    std::string status::desc() {
-        return _desc;
-    }
+//     std::string status::desc() {
+//         return _desc;
+//     }
 
-    std::string status::json() {
-        jstatus s = {_desc, code};
-        nlohmann::json j = s;
-        return j.dump();
-    }
-}
+//     std::string status::json() {
+//         jstatus s = {_desc, code};
+//         nlohmann::json j = s;
+//         return j.dump();
+//     }
+// }

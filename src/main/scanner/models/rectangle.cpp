@@ -6,6 +6,6 @@
             BR = br;
         }
 
-        rectangle rectangle::translate(const Eigen::Vector2d& r0)) {            
+        rectangle rectangle::translate(const Eigen::Vector2d& r0) {            
             return rectangle(UL + r0, BR + r0);
         }

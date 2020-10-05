@@ -2,6 +2,7 @@
 #define SCANNERCALIB_H_
 
 #include <opencv2/core.hpp>
+#include <json.hpp>
 #include <Eigen/Dense>
 
 namespace scanner {

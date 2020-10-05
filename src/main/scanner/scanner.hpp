@@ -35,7 +35,7 @@ namespace scanner {
 
             void invokeIO(std::shared_ptr<command> comm, bool blocking);
             void stremit(std::string e, std::string msg, bool blocking);
-            void imemit(std::string e, std::shared_ptr<std::string> imbase64, bool blocking);
+            void imemit(std::string e, uint8_t* imbase64, size_t len, bool blocking);
 
             template<typename F>
             void lock(F& fn, boost::shared_mutex& mtx, bool shared) {

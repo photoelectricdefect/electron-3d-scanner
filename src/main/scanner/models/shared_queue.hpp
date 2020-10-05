@@ -59,7 +59,6 @@ namespace scanner {
 
         t = q.front();
         q.pop();
-        return t;
     }
 
     void clear() {

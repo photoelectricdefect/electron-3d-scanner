@@ -36,10 +36,6 @@ void command_scanstart::execute(std::shared_ptr<command> self)
             cv::Mat frame;
             bool running = true;
 
-            auto imupdate = [self, &frame]() {
-                if (self->ctx.camera.video_alive) self->ctx.stremit(EV_IMUPDATE, std::shared_ptr<std::string>(new std::string(cv_helpers::mat2base64str(frame))), true);
-            };
-
             while (running) {
                 try {
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
@@ -51,6 +47,12 @@ void command_scanstart::execute(std::shared_ptr<command> self)
                         std::cerr << "empty frame grabbed" << std::endl;
                         continue;
                     }
+
+                    auto imupdate = [self, &frame]() {
+						uint8_t* data;
+						auto len = cv_helpers::mat2buffer(frame, data);
+                        if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, data, len, true);
+                    };
 
                     self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true);
                 }
@@ -69,24 +71,25 @@ void command_scanstart::execute(std::shared_ptr<command> self)
         if(!self->ctx.controller.serial_is_open()) self->ctx.controller.serial_is_open();
 
         while(running) {
-            boost::this_thread::interruption_point();
+            // boost::this_thread::interruption_point();
+            // nlohmann::json response;
 
-            if(self->ctx.controller.serial_is_open()) {
-                try {
-                    std::string comm = microcontroller::format("turn") +
-                        microcontroller::format("angle", scanconfig::STEP) + microcontroller::format("angle", scanconfig::CLOCKWISE);
-                    self->ctx.controller.serial_writeln(microcontroller::format("angle", comm));
-                    self->ctx.controller.serial_set_timeout(1000);
-                    response = self->ctx.controller.serial_readln();
-                }
-                catch(boost::system::system_error& e) {
-                            //
-                }
-            }
-            else {
-                        //TODO: report closed
-                        continue;
-            }             
+            // if(self->ctx.controller.serial_is_open()) {
+            //     try {
+            //         std::string comm = microcontroller::format("turn") +
+            //             microcontroller::format("angle", scanconfig::STEP) + microcontroller::format("angle", scanconfig::CLOCKWISE);
+            //         self->ctx.controller.serial_writeln(microcontroller::format("angle", 1));
+            //         self->ctx.controller.serial_set_timeout(1000);
+            //         response = self->ctx.controller.serial_readln();
+            //     }
+            //     catch(boost::system::system_error& e) {
+            //                 //
+            //     }
+            // }
+            // else {
+            //             //TODO: report closed
+            //             continue;
+            // }             
 
             //TODO: do laser identification
         }
