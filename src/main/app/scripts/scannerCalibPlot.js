@@ -8,6 +8,7 @@ var scannerCalibPlot = () => {
         y:[],
         z:[]
     };
+    let plane=[];
 
     return {
         init: ()=> {
@@ -52,20 +53,19 @@ var scannerCalibPlot = () => {
             Plotly.newPlot(plot, data, layout);
 
             ipcRenderer.on('data', (e,d)=> {
-                console.log(d);
-
                 d.forEach(el=>{
                     if(el.type=="plane") {
-                        var X = []; 
-                        var Y = [];
-                        var Z = [];
+                        plane=el.n;  
+                      let X = []; 
+                        let Y = [];
+                        let Z = [];
                                                 
-                        let xmin=-100,xmax=100,ymin=-100,ymax=100;
+                        let xmin=-200,xmax=100,ymin=0,ymax=250;
                         let step=4;
 if(el.n[2]!=0) {
-    for(x=ymin; x<ymax; x+=step) {
-        let zTemp = [];
-        let yTemp = [];
+    for(x=xmin; x<xmax; x+=step) {
+        let zTemp=[];
+        let yTemp= [];
         let xTemp = [];
         for (y=ymin; y<ymax; y+=step) {
             let z=-(el.n[3]+x*el.n[0]+y*el.n[1])/el.n[2] ;

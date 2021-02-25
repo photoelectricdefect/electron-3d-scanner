@@ -19,6 +19,7 @@ var index = () => {
     let slideshow = document.getElementById("slideshow");
     let videoSpinner = document.getElementById("video-spinner");
     let scannerCalibPlotButton = document.getElementById("scanner-calibration-plot-btn");
+    let scannerCalibResetBtn = document.getElementById("scanner-calibration-reset-btn");
 
     let videoalive = false;
     let calibratingcamera = false;
@@ -29,7 +30,7 @@ var index = () => {
 
     let scannerCalibImages=[];
     let scannerCalibPoints=[];
-    let scannerCalibPlane=[];
+    let scannerCalibPlane=null;
     let scannerCalibPlotWin=null;
 
     let cameraCalibCaptures=0;      
@@ -195,7 +196,7 @@ var index = () => {
                     win.webContents.openDevTools();
                 });
     
-                document.getElementById("slideshow").appendChild(div);    
+                slideshow.appendChild(div);    
             }
             else if(msg["size"]=="large") {
                 let obj={
@@ -214,14 +215,8 @@ var index = () => {
             }
         }
         else if(msg["type"]=="plane") {
-            scannerCalibPlotWin.webContents.send('data', [msg]);
-
-            // console.log("sssssss");
-            // scannerCalibPoints.push(msg);
-
-            // if(scannerCalibPlotWin!=null&&!scannerCalibPlotWin.isDestroyed()) {                
-            //     scannerCalibPlotWin.webContents.send('data', [msg]);
-            // }
+            scannerCalibPlane=msg;
+            if(scannerCalibPlotWin!=null&&!scannerCalibPlotWin.isDestroyed()) scannerCalibPlotWin.webContents.send('data', [msg]);
         }
     };
 
@@ -352,6 +347,17 @@ var index = () => {
                 // openWin();
             });
 
+            scannerCalibResetBtn.addEventListener("click", (e) => {
+                if(scannerCalibPlotWin!=null&&!scannerCalibPlotWin.isDestroyed()) scannerCalibPlotWin.close();
+
+                scanner.postMessage(JSON.stringify({recipient:"camera_thread",data:"clear"}));
+                scannerCalibImages=[];
+                scannerCalibPoints=[];
+                scannerCalibPlane=[];
+                slideshow.innerHTML="";
+                setprop(config.properties.scannercalibrated, false);
+            });
+
             scannerCalibPlotButton.addEventListener("click",(e)=> {
                 scannerCalibPlotWin=openWin("scannerCalibPlot.html");
 
@@ -370,8 +376,9 @@ var index = () => {
                 // };
 
                 scannerCalibPlotWin.webContents.once("did-finish-load",()=>{
+                    if(scannercalibrated) scannerCalibPlotWin.webContents.send('data', [scannerCalibPlane]);
+
                     scannerCalibPlotWin.webContents.send('data', scannerCalibPoints);
-                    // scannerCalibPlotWin.webContents.send('data', plane);
                 });
 
                 /*if(config.debug)*/ scannerCalibPlotWin.webContents.openDevTools();
@@ -420,7 +427,7 @@ var index = () => {
                 else if(msg["prop"] == config.properties.cameracalibrated)
                     cameraCalibratedChanged(msg["value"]);                
                 else if(msg["prop"] == config.properties.scannercalibrated)
-                    scannerCalibratedChanged(msg["value"]);                
+                    scannercalibratedChanged(msg["value"]);                
                 
             });
 

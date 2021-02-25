@@ -111,9 +111,24 @@ void send_command(const Napi::CallbackInfo& info) {
     }
 }
 
+void post_message(const Napi::CallbackInfo& info) {
+    std::string jstr = info[0].As<Napi::String>().Utf8Value();
+    nlohmann::json j = jstr;
+    auto recipient = j["recipient"].get<std::string>();
+
+    auto comm = [recipient,j]() {
+        if(!recipient.compare("camera_thread")) {
+            sc.camera.post_message_camera(j);
+        }
+    };
+
+    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, -1, comm)));
+}
+
+
 void keyboard_input(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
-    nlohmann::json j = nlohmann::json::parse(jstr);
+    nlohmann::json j = jstr;
     // int recipient = j["keycode"].get<int>();
     int keycode = j["keycode"].get<int>();
 
@@ -176,7 +191,21 @@ void setprop(const Napi::CallbackInfo& info) {
                 nlohmann::json j;
                 j["prop"] = PROP_VIDEOALIVE;
                 j["value"] = val;
-                std::cout << j.dump() << std::endl;
+                sc.stremit(EV_PROPCHANGED, j.dump(), true);    
+            };
+
+            sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)));
+    }
+    else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
+            bool val = j["value"].get<bool>();
+
+            auto comm = [val]() {
+                boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
+                sc.calibrated = val;
+                lock.unlock();
+                nlohmann::json j;
+                j["prop"] = PROP_SCANNERCALIBRATED;
+                j["value"] = val;
                 sc.stremit(EV_PROPCHANGED, j.dump(), true);    
             };
 
@@ -207,11 +236,11 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
                 boost::unique_lock<boost::mutex> lock(sc.camera.mtx_video_alive);
                 ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.video_alive));
             }            
-            else if(!prop.compare(PROP_CAMERA_CALIBRATED)) {
+            else if(!prop.compare(PROP_CAMERACALIBRATED)) {
                 boost::unique_lock<boost::mutex> lock(sc.camera.mtx_calibrated);
                 ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.calibrated));
             }            
-            else if(!prop.compare(PROP_SCANNER_CALIBRATED)) {
+            else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
                 boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
                 ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.calibrated));
             }            
@@ -242,6 +271,8 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
                     Napi::Function::New(env, setprop));
     exports.Set(Napi::String::New(env, "getProp"), 
                     Napi::Function::New(env, getprop));
+    exports.Set(Napi::String::New(env, "postMessage"), 
+                    Napi::Function::New(env, post_message));
     stremitTSFN = Napi::ThreadSafeFunction::New(env,  Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), "stremit", 0, 1);
     imemitTSFN = Napi::ThreadSafeFunction::New(env,  Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), "imemit", 2, 1);
 

@@ -31,6 +31,9 @@ Eigen::Vector3d plane_fit(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::
     Eigen::MatrixXd A(laser_pts.size(), 3);
 
     for (int i = 0; i < laser_pts.size(); i++) {
+        std::cout<<"pt:"<<(laser_pts[i] - c0).transpose()<<std::endl;
+
+
         A.row(i)=(laser_pts[i] - c0).transpose();
     }
 
@@ -258,12 +261,19 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
         std::vector<std::pair<int, Eigen::Vector3d> > plane_pts;
         bool running = true;
         self->ctx.camera.clear_key_camera();
+        self->ctx.camera.clear_messageq_camera();
         int captures = 0;
 
         while (running) {
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
                 int keycode = self->ctx.camera.get_key_camera();
+                auto msg = self->ctx.camera.recieve_message_camera();
+                auto data=msg["data"].get<std::string>(); 
+
+                std::cout<<data<<std::endl;
+
+                if(!data.compare("clear")) plane_pts.clear();
 
                 if(keycode==KEYCODE_C) {
                     Eigen::Hyperplane<double,3> laser_plane(Eigen::Vector3d(1,1,1),1);
@@ -278,12 +288,19 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     self->ctx.calib.laser_plane=laser_plane;
                     Eigen::Matrix<double,4,1> n=laser_plane.coeffs();
 
-                    std::cout<<"n:"<<n<<std::endl;
+                    std::cout<<n<<std::endl;
 
+                    boost::unique_lock<boost::mutex> lock(self->ctx.mtx_calibrated);
+                    self->ctx.calibrated=true;
+                    lock.unlock();
+                    nlohmann::json j;
+                    j["prop"]=PROP_SCANNERCALIBRATED;
+                    j["value"]=true;
+                    self->ctx.stremit(EV_PROPCHANGED,j.dump(),true);
                     std::vector<double> nvec,centroid;
                     centroid.push_back(c0(0)),centroid.push_back(c0(1)),centroid.push_back(c0(2));
                     nvec.push_back(n(0)),nvec.push_back(n(1)),nvec.push_back(n(2)),nvec.push_back(n(3));
-                    nlohmann::json j;
+                    j.clear();
                     j["type"] = "plane";
                     j["n"] = nvec;
                     j["centroid"] = centroid;
@@ -295,39 +312,6 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     nlohmann::json response;
                     std::string msg="laser;" + microcontroller::format("state", 0);
                     self->ctx.controller.send_message(msg,response,500,err);
-
-                    // std::cout<<response.dump()<<std::endl;
-
-                    // try {
-                    //     if (!self->ctx.controller.serial_is_open()) {
-                    //         self->ctx.controller.serial_open();
-                    //         boost::this_thread::sleep_for(boost::chrono::milliseconds(1000));
-                    //     }
-                            
-                    //     boost::system::error_code ferr;
-                    //     self->ctx.controller.serial_flush(microcontroller::flush_io, ferr);
-
-                    //     if (ferr)
-                    //         BOOST_THROW_EXCEPTION(std::runtime_error(ferr.message()));
-
-                    //     self->ctx.controller.serial_write_string("laser;" + microcontroller::format("state", 0) + "\r");
-                    //     self->ctx.controller.serial_set_timeout(500);
-                    //     response=self->ctx.controller.serial_readln();
-
-                    //     // std::cout<<response.dump()<<std::endl;
-                    // }
-                    // catch (boost::system::system_error& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
-                    // catch (timeout_exception& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
-                    // catch (std::exception& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
 
                     if (err) {
                         self->ctx.stremit(EV_ERROR, "", true);
@@ -356,42 +340,13 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     if (foundcorners)
                         solved = cv::solvePnP(world_pts,img_pts,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
 
-                    std::cout<<"foundcorners: "<<foundcorners<<", solved: "<<solved<<std::endl;
+                    // std::cout<<"rvecs: "<<rvecs<<", tvec: "<<tvec<<std::endl;
+
 
                     if (!foundcorners || !solved)
                         continue;
                         
                     err = false;
-
-                    // try {
-                    //     if (!self->ctx.controller.serial_is_open()) {
-                    //         self->ctx.controller.serial_open();
-                    //         boost::this_thread::sleep_for(boost::chrono::milliseconds(1000));
-                    //     }
-                            
-                    //     boost::system::error_code ferr;
-                    //     self->ctx.controller.serial_flush(microcontroller::flush_io, ferr);
-
-                    //     if (ferr)
-                    //         BOOST_THROW_EXCEPTION(std::runtime_error(ferr.message()));
-
-                    //     self->ctx.controller.serial_write_string("laser;" + microcontroller::format("state", 1) + "\r");
-                    //     self->ctx.controller.serial_set_timeout(500);
-                    //     response = self->ctx.controller.serial_readln();
-                    // }
-                    // catch (boost::system::system_error& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
-                    // catch (timeout_exception& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
-                    // catch (std::exception& e) {
-                    //     err = true;
-                    //     std::cerr << boost::diagnostic_information(e);
-                    // }
-
                     msg="laser;" + microcontroller::format("state", 1);
                     self->ctx.controller.send_message(msg,response,500,err);
 
@@ -400,7 +355,6 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                         continue;
                     }
 
-                    // std::cout<<"3"<<std::endl;
                     boost::unique_lock<boost::mutex> lock_(*vcap_mtx);
                     // cap->set(cv::CAP_PROP_FRAME_WIDTH, 3264);          
                     // cap->set(cv::CAP_PROP_FRAME_HEIGHT, 2448);         
@@ -417,8 +371,6 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                         self->ctx.stremit(EV_ERROR, "", true);
                         continue;
                     }
-
-                    // std::cout<<"4"<<std::endl;
 
                     if (imlaser_.empty())
                         continue;
@@ -458,27 +410,6 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     bool foundlaser=find_laser(imlaser_cut,imnolaser_cut,translated_poly.vertices,self->ctx.camera.calib.board_size,laser);
 
                     std::cout<<"foundlaser: "<<foundlaser<<std::endl;
-
-                        // line_segment lsa=translated_quad.sides[0];
-                        // line_segment lsb=translated_quad.sides[1];
-                        // line_segment lsc=translated_quad.sides[2];
-                        // line_segment lsd=translated_quad.sides[3];
-
-                        // cv::line(out, cv::Point(lsa.a(0), lsa.a(1)),
-                        //      cv::Point(lsa.b(0), lsa.b(1)),255,2, cv::LINE_AA);
-                        // cv::line(out, cv::Point(lsb.a(0), lsb.a(1)),
-                        //      cv::Point(lsb.b(0), lsb.b(1)),255,2, cv::LINE_AA);
-                        // cv::line(out, cv::Point(lsc.a(0), lsc.a(1)),
-                        //      cv::Point(lsc.b(0), lsc.b(1)),255,2, cv::LINE_AA);
-                        // cv::line(out, cv::Point(lsd.a(0), lsd.a(1)),
-                        //      cv::Point(lsd.b(0), lsd.b(1)),255,2, cv::LINE_AA);
-
-                            // uint8_t* data0;
-                            // uint8_t* data1;
-                            // // auto len0 = cv_helpers::mat2buffer(imlaser_cut, data0);
-                            // auto len1 = cv_helpers::mat2buffer(out, data1);
-                            // // self->ctx.imemit(EV_DEBUGCAPTURE, data0, len0, true);
-                            // self->ctx.imemit(EV_DEBUGCAPTURE, data1, len1, true);
 
                     if (foundlaser) {
                         captures++;
@@ -560,7 +491,7 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                             //     cv::Point(R(0), R(1)), cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
 
                             if (intersects) {
-                                // cv::circle(undist, cv::Point(intersection(0), intersection(1)), 5, cv::Scalar(255, 0, 0));
+                                cv::circle(imlaser, cv::Point(intersection(0), intersection(1)), 5, cv::Scalar(255, 0, 0));
 
                                 int y = i * squareh, a_idx = i * boardw, b_idx = a_idx + step_x,
                                     c_idx = b_idx + step_x;
@@ -575,34 +506,14 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                                     0, (b - a).norm(), (c - a).norm(), (intersection - a).norm());
                                 Eigen::Vector3d hmg_world_pt(Q, y, 1), camera_pt = H * hmg_world_pt;
 
-                                // std::cout << "world point horitontal: " << std::endl
-                                //           << world_pt << std::endl;
-                                // std::cout << "camera point horizontal: " << std::endl
-                                //           << camera_pt << std::endl;
-
-                                // if (ch == e)
-
-                            nlohmann::json j;
+                                nlohmann::json j;
                                 std::vector<double> xyz(camera_pt.data(), camera_pt.data() + camera_pt.rows() * camera_pt.cols());
                                 j["type"] = "point";
                                 j["xyz"]=xyz;
                                 j["id"] = id;
                                 self->ctx.stremit(EV_SCANNERCALIBDATA, j.dump(), true);
-                                plane_pts.push_back(std::pair<int, Eigen::Vector3d>(captures, camera_pt));
+                                plane_pts.push_back(std::pair<int, Eigen::Vector3d>(captures,camera_pt));
                         }
-
-                        //UNCOMMENT
-                        // captures++;
-
-                        // auto imupdate = [self,&imlaser,captures]() {
-                        //     std::cout<<"fhhffh"<<std::endl;
-                        //     cv::resize(imlaser, imlaser, cv::Size(150,200));
-                        //     uint8_t * data;
-                        //     auto len=cv_helpers::mat2buffer(imlaser, data);
-                        //     if (self->ctx.camera.video_alive) self->ctx.imemit(EV_SCANNERCALIBCAPTURED, data, std::to_string(captures), len, true);
-                        // };
-
-                        // imupdate();
                     }
 
                     auto imupdate = [self, &imlaser, id]() {
@@ -633,12 +544,9 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
             }
             catch (boost::thread_interrupted&) {
                 running = false;
+                self->ctx.commandq.enqueue(std::shared_ptr<command>(new command_scannercalibstop(self->ctx, COMM_SCANNERCALIBSTOP)));
             }
         }
-
-        // video_thread.interrupt();
-        // video_thread.join();
-        // self->ctx.commandq.enqueue(std::shared_ptr<command>(new command_scannercalibstop(self->ctx, COMM_SCANNERCALIBSTOP)));
     };
 
     nlohmann::json j;

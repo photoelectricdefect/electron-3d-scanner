@@ -40,8 +40,8 @@ namespace scanner {
                 PROP_CALIBRATINGCAMERA = "calibratingcamera",
                 PROP_CALIBRATINGSCANNER = "calibratingscanner",
                 PROP_SCANNING = "scanning",
-                PROP_CAMERA_CALIBRATED="cameracalibrated",
-                PROP_SCANNER_CALIBRATED="scannercalibrated",
+                PROP_CAMERACALIBRATED="cameracalibrated",
+                PROP_SCANNERCALIBRATED="scannercalibrated",
                 PROP_CAMERA_CALIB_CAPTURES="cameracalibcaptures";
 
                 

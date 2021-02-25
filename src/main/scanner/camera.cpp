@@ -35,4 +35,22 @@ int camera::get_key_camera() {
     return keycode;
 }
 
+void camera::clear_messageq_camera() {
+    boost::unique_lock<boost::mutex> lock(mtx_camera_messageq);
+
+    while(camera_messageq.size()>0) {camera_messageq.pop(); }
+}
+
+    void camera::post_message_camera(nlohmann::json msg) {
+        boost::unique_lock<boost::mutex> lock(mtx_camera_messageq);
+        camera_messageq.push(msg);
+    }
+    
+    nlohmann::json camera::recieve_message_camera() {
+        boost::unique_lock<boost::mutex> lock(mtx_camera_messageq);
+        auto msg=camera_messageq.front();
+        camera_messageq.pop();
+
+        return msg;
+    }
 }
