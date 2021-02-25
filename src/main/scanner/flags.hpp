@@ -5,6 +5,15 @@ namespace scanner {
     const int FPS_60 = 60,
            FPS_30 = 30;
 
+    const int ROTATE_CLOCKWISE = 0,
+           ROTATE_COUNTERCLOCKWISE = 1;
+
+    const float MODE_FULL_STEP = 0,
+           MODE_HALF_STEP = 1;
+
+    const int ARDUINO_ERR_OK = 0,
+           ARDUINO_ERR_NOK = 1;
+
     const std::string EV_ERROR = "error",
                 EV_STATUS = "status",
                 EV_IMUPDATE = "imupdate",
@@ -16,17 +25,28 @@ namespace scanner {
                 EV_CAMERACALIBSTOP = "cameracalibstop",
                 EV_SCANNERCALIBSTART = "scannercalibstart",
                 EV_SCANNERCALIBSTOP = "scannercalibstop",
-                EV_SCANNERCALIBIMAGECAPTURED = "scannercalibimagecaptured",
+                EV_SCANNERCALIBDATA = "scannercalibdata",
                 EV_PROPCHANGED = "propchanged",
                 EV_SCANSTART = "scanstart",
-                EV_SCANSTOP = "scanstop";
+                EV_SCANSTOP = "scanstop",
+                EV_CONTROLLERSTART = "controllerstart",
+                EV_CONTROLLERSTOP = "controllerstop",
+                EV_LASERSET = "laserset",
+                EV_ROTATE = "rotate",
+                EV_CAMERACALIBCAPTURED="cameracalibcaptured",
+                EV_DEBUGCAPTURE="debugcapture";
+       //TODO: change to string
+    const std::string PROP_VIDEOALIVE = "videoalive",
+                PROP_CALIBRATINGCAMERA = "calibratingcamera",
+                PROP_CALIBRATINGSCANNER = "calibratingscanner",
+                PROP_SCANNING = "scanning",
+                PROP_CAMERA_CALIBRATED="cameracalibrated",
+                PROP_SCANNER_CALIBRATED="scannercalibrated",
+                PROP_CAMERA_CALIB_CAPTURES="cameracalibcaptures";
 
-    const int PROP_VIDEOALIVE = 0,
-                PROP_CALIBRATINGCAMERA = 1,
-                PROP_CALIBRATINGSCANNER = 2,
-                PROP_SCANNING = 3;
                 
-    const int KEYCODE_SPACE = 32;
+    const int KEYCODE_SPACE = 32,
+              KEYCODE_C=67;
 
     const int
         COMM_IOSTART = 0,
@@ -40,9 +60,12 @@ namespace scanner {
         COMM_GETPROP = 16,
         COMM_CAMERACALIBSTART = 8,
         COMM_CAMERACALIBSTOP = 9,
-        COMM_SCANNERCALIBSTART = 16,
-        COMM_SCANNERCALIBSTOP = 17,
-        COMM_KEYSTROKE = 15;
+        COMM_SCANNERCALIBSTART = 10,
+        COMM_SCANNERCALIBSTOP = 11,
+        COMM_CONTROLLERSTART = 18,
+        COMM_CONTROLLERSTOP = 19,
+        COMM_ROTATE = 20,
+        COMM_LASERSET = 21;
 }
 
 #endif

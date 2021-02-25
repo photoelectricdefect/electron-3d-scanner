@@ -11,7 +11,7 @@ void set_px(cv::Mat& img, int x, int y, uint8_t intensity) {
 	img.ptr<uint8_t>(y)[x] = intensity;
 }
 
-void set_px(cv::Mat& img, int x, int y, cv::Vec3b intensity) {
+void set_px3C(cv::Mat& img, int x, int y, cv::Vec3b intensity) {
 	img.ptr<cv::Vec3b>(y)[x] = intensity;
 }
 
@@ -47,7 +47,7 @@ double cross2D(const Eigen::Vector2d& u, const Eigen::Vector2d& v)
 bool inside_polygon(const Eigen::Vector2d& a, const std::vector<line_segment>& sides) {
 			int intersections = 0;
 			Eigen::Vector2d O(0, a(1));
-			bool on_line;
+			bool on_line = false;
 
 			for(int i = 0; i < sides.size(); i++) {
 				Eigen::Vector2d pq = O - sides[i].a,
@@ -76,9 +76,9 @@ bool inside_polygon(const Eigen::Vector2d& a, const std::vector<line_segment>& s
 			}	
 
 			if(intersections % 2 > 0 && !on_line) return true;
-			
 			return false;
 }
+
 
 void cut(cv::Mat& mask, cv::Size img_size, const std::vector<line_segment>& borders) {
 	mask = cv::Mat(img_size, CV_8UC1);
@@ -93,7 +93,7 @@ void cut(cv::Mat& mask, cv::Size img_size, const std::vector<line_segment>& bord
 	}
 }
 
-void crop(const cv::Mat& img,  cv::Mat& cropped, const Eigen::Vector2f& q,  const Eigen::Vector2f& s) {	
+void crop(const cv::Mat& img,cv::Mat& cropped,const Eigen::Vector2d& q,const Eigen::Vector2d& s) {	
 	cv::Rect ROI(q(0), q(1), abs(s(0) - q(0)), abs(s(1) - q(1)));
 	cropped = img(ROI);
 }

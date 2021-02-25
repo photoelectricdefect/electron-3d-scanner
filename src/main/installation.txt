@@ -1,0 +1,12 @@
+pacman -Syu nodejs
+pacman -Syu boost
+pacman -Syu opencv
+pacman -Syu eigen
+
+npm install sweetalert2
+npm install node-gyp
+npm install
+node-gyp configure
+node-gyp build
+
+Preglej binding.gyp ce so poti prave

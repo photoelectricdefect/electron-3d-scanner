@@ -2,13 +2,13 @@
 
 namespace scanner {
     command_videostop::command_videostop(scanner& ctx, int code) : command(ctx, code) {}
-    command_videostop::command_videostop(scanner& ctx, jcommand jcomm) : command(ctx, jcomm) {}
 
     void command_videostop::execute(std::shared_ptr<command> self) {        
-        ctx.camera.thread_camera.interrupt();
-        ctx.camera.thread_camera.join();
+        ctx.camera.thread_video.interrupt();
+        ctx.camera.thread_video.join();
+        boost::unique_lock<boost::mutex> lock(ctx.camera.mtx_video_alive);
         ctx.camera.video_alive = false;
-        ctx.camera.thread_alive = false;
+        lock.unlock();
         nlohmann::json j;
         j["prop"] = PROP_VIDEOALIVE;
         j["value"] = false;

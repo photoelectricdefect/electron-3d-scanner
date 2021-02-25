@@ -6,7 +6,7 @@ namespace math_helpers {
 
 // double eucl2D(const cv::Mat& a, const cv::Mat& b);
 double eucl2D(const Eigen::Vector2d& a, const Eigen::Vector2d& b);
-int cross2D(const Eigen::Vector2d& u, const Eigen::Vector2d& v);
+double cross2D(const Eigen::Vector2d& u, const Eigen::Vector2d& v);
 //TODO: improve by accounting for parallel lines
 bool intersection_line_segment(const Eigen::Vector2d& a1, const Eigen::Vector2d& b1, const Eigen::Vector2d& a2, const Eigen::Vector2d& b2, Eigen::Vector2d& intersection);
 //TODO: improve by accounting for parallel lines

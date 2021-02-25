@@ -1,0 +1,21 @@
+<html>
+<head>
+    <link rel="stylesheet" href="../styles/bootstrap.min.css">
+    <script src="../scripts/scannerCalibPlot.js"></script>
+</head>
+<body>
+<div class="row h-100">
+  <div class="col-12 d-flex justify-content-center align-items-center secondary-black">
+    <div id="plot"></div>
+
+    </div>  
+</div>
+</body>
+<script>
+  window.onload = () => {
+      let _scannerCalibPlot = scannerCalibPlot();
+      _scannerCalibPlot.init();                
+  };    
+</script>
+</html>
+

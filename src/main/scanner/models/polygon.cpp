@@ -1,5 +1,6 @@
 #include <models/polygon.hpp>
 #include <cfloat>
+#include <iostream>
 
         polygon::polygon(const std::vector<Eigen::Vector2d>& vertices_) : vertices(vertices_) {
             for(int i = 1; i < vertices.size(); i++) {
@@ -40,4 +41,11 @@
 
 
 	        return polygon(vertices_tr);
+		}
+
+		void polygon::print_sides() {		
+            for(int i = 0; i < sides.size(); i++) {
+				std::cout<<"a: "<<sides[i].a<<std::endl;
+				std::cout<<"b: "<<sides[i].b<<std::endl;
+            }
 		}

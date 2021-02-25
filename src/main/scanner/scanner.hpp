@@ -21,11 +21,13 @@ namespace scanner {
         public:            
             boost::thread threadIO;
             bool IOalive, scanning, calibrating, calibrated;
+            boost::mutex mtx_calibrated,mtx_scanning;
             shared_queue<std::shared_ptr<command>> commandq;
             camera_ camera;
             microcontroller controller;
             scannercalib calib;
-            scanconfig scconf;
+            // scanconfig scanconf;
+
 
             scanner();
             //move these to their own command objects
@@ -33,14 +35,15 @@ namespace scanner {
             void load_point_cloud();
             //--------
 
-            void invokeIO(std::shared_ptr<command> comm, bool blocking);
+            int wait_key(int timeout);
+            void invokeIO(std::shared_ptr<command> comm);
             void stremit(std::string e, std::string msg, bool blocking);
             void imemit(std::string e, uint8_t* imbase64, size_t len, bool blocking);
+            void imemit(std::string e, uint8_t* imbase64, std::string msg, size_t len, bool blocking);
 
             template<typename F>
-            void lock(F& fn, boost::shared_mutex& mtx, bool shared) {
-                if(shared) boost::shared_lock<boost::shared_mutex> lock(mtx);  
-                else boost::unique_lock<boost::shared_mutex> lock(mtx);
+            void lock(F& fn, boost::mutex& mtx) {
+                boost::unique_lock<boost::mutex> lock(mtx);
                 fn();
             }
     };

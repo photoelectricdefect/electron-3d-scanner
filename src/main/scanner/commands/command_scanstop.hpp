@@ -8,7 +8,6 @@ namespace scanner {
     class command_scanstop: public command {
         public:
             command_scanstop(scanner& ctx, int code);
-            command_scanstop(scanner& ctx, jcommand jcomm);
             void execute(std::shared_ptr<command> self) override;
     };
 }

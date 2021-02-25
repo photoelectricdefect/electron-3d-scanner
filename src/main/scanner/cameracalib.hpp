@@ -6,9 +6,7 @@
 
 namespace scanner {
     struct jcameracalib {
-        int ncaps;
-        std::vector<double> K, D, square_size;
-        std::vector<int> board_size;
+        std::vector<double> K,D;
     };
 
     void to_json(nlohmann::json& j, const jcameracalib& data);
@@ -17,14 +15,14 @@ namespace scanner {
     class cameracalib {
         public:
             cv::Mat K, D;
-            cv::Size board_size, square_size;
-            int ncaps;
+            cv::Size board_size=cv::Size(9,6),square_size=cv::Size(23,23);
+            const int captures=20;
             
             cameracalib();
 
-            void load();
+            // void load();
             void save(std::string fpath);        
-            // void load(std::string fpath);
+            bool load(std::string fpath);
     };
 }
 

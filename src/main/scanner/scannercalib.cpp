@@ -1,37 +1,21 @@
 #include <scannercalib.hpp>
 #include <fstream>
+#include <iostream>
 
 namespace scanner {
     scannercalib::scannercalib() {};
 
-    //TODO: read configuration and saved data from files
-    void scannercalib::load() {
-        board_size = cv::Size(9, 6);
-        square_size = cv::Size(23, 23);
-        //ncaps = 20;
-    }
-
     void to_json(nlohmann::json& j, const jscannercalib& data) {
-        j = nlohmann::json{ {"board_size", data.board_size}, 
-                            {"square_size", data.square_size}};
+        j = nlohmann::json{ {"laser_plane", data.laser_plane}};
     }
 
     void from_json(const nlohmann::json& j, jscannercalib& data) {
-        j.at("board_size").get_to(data.board_size),
-        j.at("square_size").get_to(data.square_size);
-
+        j.at("laser_plane").get_to(data.laser_plane);
     }
 
 void scannercalib::save(std::string fpath) {
-    std::vector<double> square_size_;
-    std::vector<int> board_size_;
-
-    board_size_.push_back(board_size.width), 
-    board_size_.push_back(board_size.height),
-    square_size_.push_back(square_size.width),
-    square_size_.push_back(square_size.height);
-
-    jscannercalib data = {square_size_, board_size_};
+    std::vector<double> laser_plane_;
+    jscannercalib data = {laser_plane_};
     nlohmann::json j = data;
     std::ofstream file;
     file.open(fpath);
@@ -39,17 +23,26 @@ void scannercalib::save(std::string fpath) {
     file.close();
 }
 
-//For now manually init 
-    // void /*scannercalib::*/load(std::string fpath) {
-    // std::ifstream file(fpath);
-    // nlohmann::json j;
-    // file >> j;
-    // file.close();
-    // jscannercalib data = j.get<jscannercalib>();
+bool scannercalib::load(std::string fpath) {
+        try {
+    std::ifstream file(fpath);
+    nlohmann::json j;
+    file >> j;
+    file.close();
+    jscannercalib data = j.get<jscannercalib>();
+    Eigen::Vector3d n;
 
-    // //Handle no existing save data
+    for(int i = 0; i < 3; i++) {
+        n<<data.laser_plane[i];
+    }
 
-    // board_size = cv::Size(data.board_size[0], data.board_size[1]);
-    // square_size = cv::Size(data.square_size[0], data.square_size[1]);
-    // }
+    laser_plane=Eigen::Hyperplane<double,3>(n,data.laser_plane[3]);
+
+    return true;
+    } catch(nlohmann::json::parse_error& e) {
+        std::cerr<<e.what()<<std::endl;
+    }
+
+    return false;
+    }
 }

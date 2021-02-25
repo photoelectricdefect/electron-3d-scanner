@@ -14,6 +14,7 @@ class polygon {
         polygon(const std::vector<Eigen::Vector2d>& vertices_);
         rectangle frame();
 		polygon translate(const Eigen::Vector2d& r0);
+        void print_sides();
 };
 
 #endif

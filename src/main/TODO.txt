@@ -1,0 +1,6 @@
+1.Complete automatic calibration
+    -complete arduino program
+    -connect arduino with app
+    -sort out input messaging, queue for keyboard input is not optimal, make like OPENCV waitKey(timeout)
+    -test if iothread and controllerthread interrupt when prompted (dequeue)
+    -fix bug when pressing space while no process like calibration is active the calibration command does not work

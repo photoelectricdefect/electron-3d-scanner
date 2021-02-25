@@ -242,3 +242,5 @@ void TimeoutSerial::readCompleted(const boost::system::error_code& error,
 
     result=resultError;
 }
+
+boost::asio::serial_port* TimeoutSerial::get_port() { return &port; }

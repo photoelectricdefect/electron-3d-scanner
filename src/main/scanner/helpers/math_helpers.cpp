@@ -74,8 +74,6 @@ bool intersection_line_segment(const Eigen::Vector2d& a1, const Eigen::Vector2d&
 
 bool intersection_line(const Eigen::Vector2d& a1, const Eigen::Vector2d& b1, const Eigen::Vector2d& a2, const Eigen::Vector2d& b2, Eigen::Vector2d& intersection)
 {
-	if(cross2D(b1 - a1, b2 - a2) == 0) return false;
-
 	Eigen::Hyperplane<double, 2> u = Eigen::Hyperplane<double, 2>::Through(a1, b1),
 		v = Eigen::Hyperplane<double, 2>::Through(a2, b2);
 
@@ -83,7 +81,6 @@ bool intersection_line(const Eigen::Vector2d& a1, const Eigen::Vector2d& b1, con
 
 	return true;
 }
-
 
 Eigen::Vector3d proj_a2b3D(const Eigen::Vector3d& a, const Eigen::Vector3d& b, double b_squared_norm) {
 	return (a.dot(b) / b_squared_norm) * b;

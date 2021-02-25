@@ -4,11 +4,12 @@
 #include <scanner.hpp>
 #include <commands/command.hpp>
 
+
+//TODO: rename to mainthread
 namespace scanner {
     class command_iostart : public command {
         public:
             command_iostart(scanner& ctx, int code);
-            command_iostart(scanner& ctx, jcommand jcomm);
             void execute(std::shared_ptr<command> self) override;
     };
 }

@@ -12,7 +12,6 @@ namespace scanner {
         public:
             F& fn;
             command_setprop(F& _fn, scanner& ctx, int code) : command(ctx, code), json(_json) {}
-            command_setprop(F& _fn, scanner& ctx, jcommand jcomm) : command(ctx, jcomm), json(_json) {}
             void execute(std::shared_ptr<command> self) override {
                 fn();
             }

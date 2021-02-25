@@ -7,21 +7,20 @@
 
 namespace scanner {
     command_videostart::command_videostart(scanner& ctx, int code) : command(ctx, code) {}
-    command_videostart::command_videostart(scanner& ctx, jcommand jcomm) : command(ctx, jcomm) {}
 
             void command_videostart::execute(std::shared_ptr<command> self) {
                 ctx.camera.video_alive = true;
-                ctx.camera.thread_alive = true;
+                std::shared_ptr<cv::VideoCapture> cap(new cv::VideoCapture);
+                cap->open(0);
+                cap->set(cv::CAP_PROP_FRAME_WIDTH, 640);          
+                cap->set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
 
-                auto fn = [self](){
-            cv::VideoCapture cap;
-	        cap.open(0);
-
-	        if (!cap.isOpened())
+	        if (!cap->isOpened())
 	        {
 		        std::cerr << "error opening camera" << std::endl;
-		        return;
 	        }
+
+                auto fn = [self,cap](){
 
 	        cv::Mat frame;
 	        bool running = true;
@@ -29,7 +28,9 @@ namespace scanner {
             while(running) {
                 try{             
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000/FPS_30));   
-		        cap.read(frame);
+		        cap->read(frame);
+
+                std::cout << frame.size()<<std::endl;
 
 		        if (frame.empty())
 		        {
@@ -38,12 +39,16 @@ namespace scanner {
 		        }
 
                 auto imupdate = [self, &frame]() {
-					uint8_t* data;
-					auto len = cv_helpers::mat2buffer(frame, data);
-                    if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, data, len, true);
+                        boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_video_alive);
+
+                        if (self->ctx.camera.video_alive) {
+    						uint8_t* data;
+	    					auto len = cv_helpers::mat2buffer(frame, data);
+                            self->ctx.imemit(EV_IMUPDATE, data, len, true);
+                        }
                 };
 
-                self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true);    
+                imupdate();
                 }
                 catch (boost::thread_interrupted&) { running = false; }
             }
@@ -54,6 +59,6 @@ namespace scanner {
         j["value"] = true;
         ctx.stremit(EV_PROPCHANGED, j.dump(), true);    
         ctx.stremit(EV_VIDEOSTART, "", true);
-        ctx.camera.thread_camera = boost::thread{fn};
+        ctx.camera.thread_video = boost::thread{fn};
         }
 }

@@ -1,8 +1,11 @@
 <html>
 <head>
+    <link rel="stylesheet" href="../styles/colors.css">
     <link rel="stylesheet" href="../styles/index.css">
+    <link rel="stylesheet" href="../styles/external/spinner.css">
     <link rel="stylesheet" href="../styles/bootstrap.min.css">
     <script src="../scripts/util.js"></script>
+    
     <script src="../scripts/index.js"></script>
 
     <script>
@@ -16,34 +19,75 @@
 <div class="row h-100">
     <div class="col-2 primary-black sidebar">
         <div class="row" style="height:50px;">
-        </div>
+    </div>
     <div class="row">
         <div class="col-12 d-flex justify-content-start align-items-center divider">
             <span class="ml-2"><b>Video</b></span>
         </div>
-        <div class="w-100"></div>       
+        <!-- <div class="w-100"></div>        -->
         <div class="col-12 d-flex justify-content-start align-items-center mt-3">
             <button id="video-btn" class="ml-1 btn-red" type="button">Start</button>
         </div>
         <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
             <span class="ml-2"><b>Camera Calibration</b></span>
         </div>
-        <div class="w-100"></div>    
-        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
-            <button id="camera-calibration-btn" class="ml-1 btn-red" type="button">Start</button>
+        <!-- <div class="w-100"></div>     -->
+        <div class="col-12 mt-3">
+            <div class="row">
+                <div class="col-6">
+                    <span class="ml-1 badge badge-success" id="camera-calibrated-text" style="padding:5px;"><b>CALIBRATED</b></span>
+                </div>
+                <div class="col-6">
+                    <p class="mb-0 text-small"><b>CAPTURES</b>: <span class="text-small" id="captures">0</span>/<span class="text-small" id="max-captures"></span></p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <p class="mb-0 ml-1 mt-2 text-small">Press <b>SPACE</b> to capture when the scanner finds the chessboard pattern</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <button id="camera-calibration-btn" class="ml-1 mt-2 btn-red" type="button">Start</button>
+                </div>
+            </div>
         </div>
         <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
             <span class="ml-2"><b>Scanner Calibration</b></span>
         </div>
-        <div class="w-100"></div>    
-        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
-            <button  class="ml-1 btn-red" id="scanner-calibration-btn" type="button">Start</button>
+        <!-- <div class="w-100"></div>     -->
+        <div class="col-12 mt-3">
+            <div class="row">
+                <div class="col-12">
+                    <span class="ml-1 badge badge-success" id="scanner-calibrated-text" style="padding:5px;"><b>CALIBRATED</b></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <button  class="ml-1 mt-2 btn-red" id="scanner-calibration-btn" type="button">Start</button>
+                    <button  class="ml-1 mt-2 btn-red" id="scanner-calibration-plot-btn" type="button">Open point plot</button>
+                </div>
+            </div>
         </div>
     </div>
     </div>
     <div class="col-10 d-flex justify-content-center secondary-black">
+        <div id="video-spinner" class="lds-spinner invisible" style="position: absolute;top: 50%;left: 50%;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
         <img id="video" class="img-fluid">
+
+        <div id="slideshow" class="d-flex justify-content-start slideshow invisible" >
+
+        </div>
+        <div class="primary-black position-absolute row" style="top: 50px;left: 50%;padding: 5px;">
+            <button  class="btn-red" id="rotate-right-btn" type="button">Right</button>
+            <button  class="ml-1 btn-red" id="rotate-left-btn" type="button">Left</button>
+        </div>
     </div>
 </div>
+
 </body>
+
 </html>

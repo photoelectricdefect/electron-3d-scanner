@@ -10,18 +10,13 @@ command_scanstart::command_scanstart(scanner& ctx, int code)
     : command(ctx, code)
 {
 }
-command_scanstart::command_scanstart(scanner& ctx, jcommand jcomm)
-    : command(ctx, jcomm)
-{
-}
 
 void command_scanstart::execute(std::shared_ptr<command> self)
 {
     ctx.scanning = true;
     ctx.camera.video_alive = true;
-    ctx.camera.thread_alive = true;
+    ctx.camera.camera_alive = true;
 
-    auto fn = [self, conf = self->ctx.scconf]() {
         cv::VideoCapture cap;
         cap.open(0);
 
@@ -32,16 +27,16 @@ void command_scanstart::execute(std::shared_ptr<command> self)
 
         boost::mutex vcap_mtx;
 
-        auto video = [self, &cap, &vcap_mtx]() {
+        auto fnvideo = [self, &cap, &vcap_mtx]() {
             cv::Mat frame;
             bool running = true;
 
             while (running) {
                 try {
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
-                    vcap_mtx.lock();
+                    boost::unique_lock<boost::mutex> lock(vcap_mtx);
                     cap.read(frame);
-                    vcap_mtx.unlock();
+                    lock.unlock();
 
                     if (frame.empty()) {
                         std::cerr << "empty frame grabbed" << std::endl;
@@ -54,7 +49,8 @@ void command_scanstart::execute(std::shared_ptr<command> self)
                         if (self->ctx.camera.video_alive) self->ctx.imemit(EV_IMUPDATE, data, len, true);
                     };
 
-                    self->ctx.lock(imupdate, self->ctx.camera.mtx_video_alive, true);
+                boost::unique_lock<boost::mutex> lock_(self->ctx.camera.mtx_video_alive);
+                imupdate();
                 }
                 catch (boost::thread_interrupted&) {
                     running = false;
@@ -62,10 +58,9 @@ void command_scanstart::execute(std::shared_ptr<command> self)
             }
         };
 
-        auto video_thread = boost::thread{ video };
-
+    auto fncamera = [self,&cap,&vcap_mtx]() {
         //capture image AFTER each step!!!
-        int ncaps = conf.angle / conf.step_resolution, caps;
+        // int ncaps = conf.angle / conf.step_resolution, caps;
         bool running = true;
 
         if(!self->ctx.controller.serial_is_open()) self->ctx.controller.serial_is_open();
@@ -99,10 +94,11 @@ void command_scanstart::execute(std::shared_ptr<command> self)
     j["prop"] = PROP_VIDEOALIVE;
     j["value"] = true;
     ctx.stremit(EV_PROPCHANGED, j.dump(), true);
+    self->ctx.camera.thread_video = boost::thread{ fnvideo };
     j["prop"] = PROP_SCANNING;
     j["value"] = true;
     ctx.stremit(EV_PROPCHANGED, j.dump(), true);
     ctx.stremit(EV_SCANSTART, "", true);
-    ctx.camera.thread_camera = boost::thread{ fn };
+    ctx.camera.thread_camera = boost::thread{ fncamera };
 }
 }

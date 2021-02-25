@@ -1,2 +1,4 @@
 src/main/build/
 src/main/node_modules/
+src/external/
+src/main/bin

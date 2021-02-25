@@ -7,9 +7,7 @@
 
 namespace scanner {
     struct jscannercalib {
-        // int ncaps;
-        std::vector<double> square_size;
-        std::vector<int> board_size;
+        std::vector<double> laser_plane;
     };
 
     void to_json(nlohmann::json& j, const jscannercalib& data);
@@ -17,15 +15,14 @@ namespace scanner {
 
     class scannercalib {
         public:            
-            cv::Size board_size, square_size;
-            Eigen::Hyperplane<double, 3> laser_plane;
-            //int ncaps;
+            cv::Size board_size=cv::Size(9,6),square_size=cv::Size(23,23);
+            Eigen::Hyperplane<double,3> laser_plane;
+            int captures=20;
 
             scannercalib();
             
-            void load();
+            bool load(std::string fpath);
             void save(std::string fpath);        
-            // void load(std::string fpath);
     };
 }
 
