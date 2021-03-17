@@ -46,7 +46,7 @@ bool cameracalib::load(std::string fpath) {
     file.close();
         jcameracalib data = j.get<jcameracalib>();
     K = cv::Mat(cv::Size(3, 3), CV_64FC1);
-    D = cv::Mat(cv::Size(1, 4), CV_64FC1);
+    D = cv::Mat(cv::Size(1, 5), CV_64FC1);
 
     for(int i = 0; i < K.rows; i++) {
         for(int j = 0; j < K.cols; j++) {

@@ -24,7 +24,7 @@ namespace scanner {
             int get_key_camera();
             void clear_messageq_camera();
             void post_message_camera(nlohmann::json msg);
-            nlohmann::json recieve_message_camera();
+            bool recieve_message_camera(nlohmann::json& msg);
     };
 }
 

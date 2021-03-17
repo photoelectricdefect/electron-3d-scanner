@@ -19,27 +19,70 @@ namespace scanner {
 command_scannercalibstart::command_scannercalibstart(scanner& ctx, int code)
     : command(ctx, code){};
 
-Eigen::Vector3d plane_fit(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperplane<double, 3>& plane)
+//trash approach only minimizes z-axis error
+// void plane_fit_LLS(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperplane<double, 3>& plane)
+// {
+//     Eigen::MatrixXd A(laser_pts.size(), 3);
+//     Eigen::MatrixXd b(laser_pts.size(), 1);
+
+//     for (int i = 0; i < laser_pts.size(); i++) {
+//         A(i,0)=laser_pts[i](0);
+//         A(i,1)=laser_pts[i](1);
+//         A(i,2)=1;
+//         b(i)=laser_pts[i](2);
+//     }
+
+//     // Eigen::Vector3d abc=(A.transpose()*A).inverse()*A.transpose()*b;
+//     Eigen::Vector3d abc=A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
+//     Eigen::Vector3d P(1,0,abc(0)+abc(2)),n(-abc(0),-abc(1),1);
+//     n.normalize();
+
+//     // std::cout<<"d:"<<n.transpose()*P<<std::endl;
+
+//     plane = Eigen::Hyperplane<double, 3>(n, P);
+// }
+
+Eigen::Vector3d plane_fit_orthogonalEigen(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperplane<double, 3>& plane)
 {
-    Eigen::Vector3d c0;
+    Eigen::MatrixXd A(3,laser_pts.size());
 
     for (int i = 0; i < laser_pts.size(); i++) {
-        c0 += laser_pts[i];
+        A.col(i) = laser_pts[i];
     }
 
-    c0 /= laser_pts.size();
-    Eigen::MatrixXd A(laser_pts.size(), 3);
+    Eigen::Vector3d c0 = A.rowwise().mean();
 
     for (int i = 0; i < laser_pts.size(); i++) {
-        std::cout<<"pt:"<<(laser_pts[i] - c0).transpose()<<std::endl;
-
-
-        A.row(i)=(laser_pts[i] - c0).transpose();
+        A.col(i)-=c0;
     }
 
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es;
+    Eigen::Matrix3d AAT = A*A.transpose();
+    es.compute(AAT);
+    Eigen::Vector3d n = es.eigenvectors().col(0);
+    n.normalize();
+    plane = Eigen::Hyperplane<double, 3>(n, c0);
+
+    return c0;
+}
+
+Eigen::Vector3d plane_fit_orthogonalSVD(const std::vector<Eigen::Vector3d>& laser_pts, Eigen::Hyperplane<double, 3>& plane)
+{
+    Eigen::MatrixXd A(3,laser_pts.size());
+
+    for (int i = 0; i < laser_pts.size(); i++) {
+        A.col(i) = laser_pts[i];
+    }
+
+    Eigen::Vector3d c0 = A.rowwise().mean();
+
+    for (int i = 0; i < laser_pts.size(); i++) {
+        A.col(i)-=c0;
+    }
+
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinV | Eigen::ComputeThinU);
     svd.computeV();
-    Eigen::Vector3d n = svd.matrixV().col(A.cols() - 1);
+    Eigen::Vector3d n = svd.matrixU().col(A.rows() - 1);
     n.normalize();
     plane = Eigen::Hyperplane<double, 3>(n, c0);
 
@@ -209,8 +252,12 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
     }
 
     auto fnvideo = [self, cap, vcap_mtx]() {
-        cv::Mat frame;
+        cv::Mat frame,undistorted;
         bool running = true;
+
+            std::cout<<"KCAM0:"<<self->ctx.camera.calib.K<<std::endl;
+            std::cout<<"DCAM0:"<<self->ctx.camera.calib.D<<std::endl;
+
 
         while (running) {
             try {
@@ -226,12 +273,14 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     continue;
                 }
 
-                auto imupdate = [self, &frame]() {
+                cv::undistort(frame, undistorted, self->ctx.camera.calib.K,self->ctx.camera.calib.D);
+
+                auto imupdate = [self, &undistorted]() {
                     boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_video_alive);
 
                     if (self->ctx.camera.video_alive) {
                         uint8_t* data;
-                        auto len = cv_helpers::mat2buffer(frame, data);
+                        auto len = cv_helpers::mat2buffer(undistorted, data);
                         self->ctx.imemit(EV_IMUPDATE, data, len, true);
                     }
                 };
@@ -268,12 +317,15 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
                 int keycode = self->ctx.camera.get_key_camera();
-                auto msg = self->ctx.camera.recieve_message_camera();
-                auto data=msg["data"].get<std::string>(); 
+                nlohmann::json msg;
+                bool recieved=self->ctx.camera.recieve_message_camera(msg);
 
-                std::cout<<data<<std::endl;
+                if(recieved) {
+                    auto data=msg["data"].get<std::string>(); 
+                    // std::cout<<msg.dump()<<std::endl;
 
-                if(!data.compare("clear")) plane_pts.clear();
+                    if(!data.compare("clear")) plane_pts.clear();
+                }
 
                 if(keycode==KEYCODE_C) {
                     Eigen::Hyperplane<double,3> laser_plane(Eigen::Vector3d(1,1,1),1);
@@ -283,22 +335,24 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                         tmp.push_back(pair.second);
                     }
 
-                    auto c0=plane_fit(tmp,laser_plane);
+                    //plane_fit_LLS(tmp,laser_plane);
+                    auto c0=plane_fit_orthogonalSVD(tmp,laser_plane);
+                    // auto c1=plane_fit_eigen(tmp,laser_plane);
 
                     self->ctx.calib.laser_plane=laser_plane;
                     Eigen::Matrix<double,4,1> n=laser_plane.coeffs();
 
-                    std::cout<<n<<std::endl;
+                    std::cout<<"svd:"<< "("<<n(3)<<"-XX*("<<n(0)<<")-YY*("<<n(1)<<"))/("<< n(2)<<")"<<std::endl;
 
                     boost::unique_lock<boost::mutex> lock(self->ctx.mtx_calibrated);
                     self->ctx.calibrated=true;
                     lock.unlock();
                     nlohmann::json j;
-                    j["prop"]=PROP_SCANNERCALIBRATED;
+                    j["prop"]=PROP_SCANNERCALIBRATED;       
                     j["value"]=true;
                     self->ctx.stremit(EV_PROPCHANGED,j.dump(),true);
                     std::vector<double> nvec,centroid;
-                    centroid.push_back(c0(0)),centroid.push_back(c0(1)),centroid.push_back(c0(2));
+                    // centroid.push_back(c0(0)),centroid.push_back(c0(1)),centroid.push_back(c0(2));
                     nvec.push_back(n(0)),nvec.push_back(n(1)),nvec.push_back(n(2)),nvec.push_back(n(3));
                     j.clear();
                     j["type"] = "plane";
@@ -333,12 +387,12 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                         continue;
 
                     bool foundcorners = false, solved = false;
-                    cv::undistort(imnolaser_, imnolaser, self->ctx.camera.calib.K, self->ctx.camera.calib.D);
+                    cv::undistort(imnolaser_, imnolaser, self->ctx.camera.calib.K, std::vector<float>());
                     cv::cvtColor(imnolaser, gray, cv::COLOR_BGR2GRAY);
                     foundcorners = cv::findChessboardCorners(gray,self->ctx.calib.board_size,img_pts);
 
                     if (foundcorners)
-                        solved = cv::solvePnP(world_pts,img_pts,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
+                        solved = cv::solvePnP(world_pts,img_pts,self->ctx.camera.calib.K,std::vector<float>(),rvecs,tvec);
 
                     // std::cout<<"rvecs: "<<rvecs<<", tvec: "<<tvec<<std::endl;
 
@@ -375,7 +429,7 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                     if (imlaser_.empty())
                         continue;
 
-                    cv::undistort(imlaser_, imlaser, self->ctx.camera.calib.K, self->ctx.camera.calib.D);
+                    cv::undistort(imlaser_, imlaser, self->ctx.camera.calib.K,std::vector<float>());
                     std::vector<Eigen::Vector2d> corners;
 
                     for (auto& pt : img_pts) {
@@ -425,11 +479,19 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                             // self->ctx.imemit(EV_DEBUGCAPTURE, data0, len0, true);
                         self->ctx.imemit(EV_DEBUGCAPTURE, data, len, true);
 
+                        std::cout<<"rbefore"<<rvecs<<std::endl;
                         cv::Rodrigues(rvecs, rvecs);
+                        std::cout<<"rafter"<<rvecs<<std::endl;
+                        // rvecs=rvecs.t();
+                        // tvec=rvecs*tvec;
                         Eigen::Matrix<double, 3, 4> RT;
                         RT << *rvecs.ptr<double>(0), *(rvecs.ptr<double>(0) + 1), *(rvecs.ptr<double>(0) + 2), *tvec.ptr<double>(0),
                             *rvecs.ptr<double>(1), *(rvecs.ptr<double>(1) + 1), *(rvecs.ptr<double>(1) + 2), *tvec.ptr<double>(1),
                             *rvecs.ptr<double>(2), *(rvecs.ptr<double>(2) + 1), *(rvecs.ptr<double>(2) + 2), *tvec.ptr<double>(2);
+                        std::cout<<"RR:"<<RT<<std::endl;
+                        // RT.block(0,0,3,3)=RT.block(0,0,3,3).transpose();
+                        // std::cout<<"RRafter:"<<RT<<std::endl;
+                        // RT.block(0,3,3,1)=-RT.block(0,0,3,3)*RT.block(0,3,3,1);
                         Eigen::Matrix3d H;
                         H.col(0) = RT.col(0), H.col(1) = RT.col(1), H.col(2) = RT.col(3);
 
@@ -505,6 +567,9 @@ void command_scannercalibstart::execute(std::shared_ptr<command> self)
                                 double Q = math_helpers::cross_ratio(A(0), B(0), C(0),
                                     0, (b - a).norm(), (c - a).norm(), (intersection - a).norm());
                                 Eigen::Vector3d hmg_world_pt(Q, y, 1), camera_pt = H * hmg_world_pt;
+
+                                // std::cout<<"hmg_world_pt:"<<hmg_world_pt<<std::endl;
+                                // std::cout<<"camera_pt:"<<camera_pt<<std::endl;
 
                                 nlohmann::json j;
                                 std::vector<double> xyz(camera_pt.data(), camera_pt.data() + camera_pt.rows() * camera_pt.cols());

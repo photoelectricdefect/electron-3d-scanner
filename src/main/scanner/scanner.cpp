@@ -113,7 +113,7 @@ void send_command(const Napi::CallbackInfo& info) {
 
 void post_message(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
-    nlohmann::json j = jstr;
+    nlohmann::json j = nlohmann::json::parse(jstr);
     auto recipient = j["recipient"].get<std::string>();
 
     auto comm = [recipient,j]() {
@@ -128,7 +128,7 @@ void post_message(const Napi::CallbackInfo& info) {
 
 void keyboard_input(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
-    nlohmann::json j = jstr;
+    nlohmann::json j = nlohmann::json::parse(jstr);
     // int recipient = j["keycode"].get<int>();
     int keycode = j["keycode"].get<int>();
 

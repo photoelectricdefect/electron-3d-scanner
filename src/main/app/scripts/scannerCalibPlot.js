@@ -60,7 +60,7 @@ var scannerCalibPlot = () => {
                         let Y = [];
                         let Z = [];
                                                 
-                        let xmin=-200,xmax=100,ymin=0,ymax=250;
+                        let xmin=-150,xmax=50,ymin=0,ymax=200;
                         let step=4;
 if(el.n[2]!=0) {
     for(x=xmin; x<xmax; x+=step) {

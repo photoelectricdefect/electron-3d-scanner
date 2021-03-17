@@ -15,8 +15,8 @@ namespace scanner {
     class cameracalib {
         public:
             cv::Mat K, D;
-            cv::Size board_size=cv::Size(9,6),square_size=cv::Size(23,23);
-            const int captures=20;
+            cv::Size board_size=cv::Size(9,6),square_size=cv::Size(25,25);
+            const int captures=80;
             
             cameracalib();
 

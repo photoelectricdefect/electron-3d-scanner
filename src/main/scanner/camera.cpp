@@ -46,11 +46,16 @@ void camera::clear_messageq_camera() {
         camera_messageq.push(msg);
     }
     
-    nlohmann::json camera::recieve_message_camera() {
+    bool camera::recieve_message_camera(nlohmann::json& msg) {
         boost::unique_lock<boost::mutex> lock(mtx_camera_messageq);
-        auto msg=camera_messageq.front();
-        camera_messageq.pop();
+        
+        if(camera_messageq.size()>0) {
+            msg=camera_messageq.front();
+            camera_messageq.pop();
 
-        return msg;
+            return true;
+        }
+        
+        return false;
     }
 }

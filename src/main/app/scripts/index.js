@@ -28,6 +28,8 @@ var index = () => {
     let cameracalibrated = false;
     let scannercalibrated = false;
 
+    let oldPlanes=[];
+
     let scannerCalibImages=[];
     let scannerCalibPoints=[];
     let scannerCalibPlane=null;

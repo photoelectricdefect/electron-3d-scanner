@@ -25,8 +25,8 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
 
     std::shared_ptr<cv::VideoCapture> cap(new cv::VideoCapture);
     cap->open(0);
-    cap->set(cv::CAP_PROP_FRAME_WIDTH, 640);          
-    cap->set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
+    cap->set(cv::CAP_PROP_FRAME_WIDTH, 1600);          
+    cap->set(cv::CAP_PROP_FRAME_HEIGHT, 1200);         
 
         if (!cap->isOpened()) {
             std::cerr << "error opening camera" << std::endl;
@@ -43,16 +43,22 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
             boardw = calib.board_size.width,
             squareh = calib.square_size.height,
             squarew = calib.square_size.width;
-        std::vector<cv::Point3f> tmp;
+        
+        std::vector<std::vector<cv::Point2f> > img_pts;
+        std::vector<std::vector<cv::Point3f>> world_pts;
 
-        for (int i = 0; i < boardh; i++) {
-            for (int j = 0; j < boardw; j++) {
-                tmp.push_back(cv::Point3f(j * squarew, i * squareh, 0));
+        for(int c=0;c<calib.captures;c++) {
+            std::vector<cv::Point3f> tmp;
+            
+            for (int i = 0; i < boardh; i++) {
+                for (int j = 0; j < boardw; j++) {
+                    tmp.push_back(cv::Point3f(j*squarew, i*squareh, 0));
+                }
             }
+        
+            world_pts.push_back(tmp);
         }
 
-        std::vector<std::vector<cv::Point3f> > world_pts(calib.captures, tmp);
-        std::vector<std::vector<cv::Point2f> > img_pts;
         cv::Mat frame, gray;
         bool running = true, interrupted = false;
         int caps = 0;
@@ -75,6 +81,15 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
 
                 if (found) {
                     cv::cornerSubPix(gray, pts, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 0.1));
+
+                    // cv::Mat rvecs, tvec;
+                    // bool solved = cv::solvePnP(world_pts[0],pts,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
+                    
+                    // if(solved) {
+                    //     cv::Rodrigues(rvecs, rvecs);
+                    //     std::cout<<"rvecs:"<<rvecs<<std::endl;
+                    //     std::cout<<"tvec:"<<tvec<<std::endl;
+                    // }
 
                     if (keycode == KEYCODE_SPACE) {
                         img_pts.push_back(pts);
@@ -111,7 +126,9 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
 
         if (!interrupted) {
             cv::Mat rvecs, tvec;
-            cv::calibrateCamera(world_pts, img_pts, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec);
+            std::cout<<"rms:"<<cv::calibrateCamera(world_pts, img_pts, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec)<<std::endl;
+            std::cout<<"KCAM:"<<self->ctx.camera.calib.K<<std::endl;
+            std::cout<<"DCAM:"<<self->ctx.camera.calib.D<<std::endl;
             self->ctx.camera.calib.save("cameracalib.json");
             boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_calibrated);
             self->ctx.camera.calibrated = true;
