@@ -24,8 +24,8 @@ cv::Vec3b get_px3C(const cv::Mat& img, int x, int y) {
 }
 
 void sharpen(const cv::Mat& img, const cv::Mat& sharpened, float alpha, int threshold) {
-	cv::GaussianBlur(img, sharpened, cv::Size(5, 5), 0);
-	cv::addWeighted(img, alpha, sharpened, 1 - alpha, 0, sharpened);
+	cv::GaussianBlur(img, sharpened, cv::Size(5,5),0);
+	cv::addWeighted(img,alpha,sharpened,1-alpha,0,sharpened);
 	cv::Mat low_contrast_mask = cv::abs(img - sharpened) < threshold;
 	img.copyTo(sharpened, low_contrast_mask);
 }
@@ -127,6 +127,95 @@ float masked_threshold(cv::Mat& img, const cv::Mat& mask, int type, int threshol
 	return t;
 }
 
+void ZhangSuen_thinning(const cv::Mat& binary, cv::Mat& out) {
+	const int dx[9]={0,1,1,1,0,-1,-1,-1,0};
+	const int dy[9]={-1,-1,0,1,1,1,0,-1,-1};
+	out=binary.clone();
+	int changed=1;
+
+	while(changed>0) {
+		changed=0;
+
+		cv::Mat out_tmp=out.clone();
+
+	for (size_t x = 0; x < out.cols; x++)
+	{
+		for (size_t y=0;y<out.rows;y++)
+		{
+			bool cond0,cond1;
+			cond0=cond1=false;
+			int transitions=0;
+			int whites=0;
+			uint8_t C=get_px(out,x,y);
+
+			if(x==0||x==out.cols-1||y==0||y==out.rows-1||C==MIN_INTENSITY)  {
+				continue;
+			}
+
+				for (size_t i = 0; i < 8; i++)
+				{
+					int x0=x+dx[i];
+					int y0=y+dy[i];
+					int x1=x+dx[i+1];
+					int y1=y+dy[i+1];
+					uint8_t C0=get_px(out,x0,y0);
+					uint8_t C1=get_px(out,x1,y1);
+
+					if((i==0||i==2||i==4)&&C0==MIN_INTENSITY) cond0=true;
+					if((i==2||i==4||i==6)&&C0==MIN_INTENSITY) cond1=true;
+
+					if(C0==MAX_INTENSITY) whites++;
+					else if(C1==MAX_INTENSITY) transitions++;
+				}
+
+			if(whites>=2&&whites<=6&&transitions==1&&cond0&&cond1) {
+				set_px(out_tmp,x,y,MIN_INTENSITY);
+				changed++;
+			}
+		}
+	}
+
+	out=out_tmp.clone();
+
+	for (size_t x = 0; x < out.cols; x++)
+	{
+		for (size_t y=0;y<out.rows;y++)
+		{
+			bool cond0,cond1;
+			cond0=cond1=false;
+			int transitions=0;
+			int whites=0;
+			uint8_t C=get_px(out_tmp,x,y);
+
+			if(x==0||x==out.cols-1||y==0||y==out.rows-1||C==MIN_INTENSITY)  {
+				continue;
+			}
+
+				for (size_t i = 0; i < 8; i++)
+				{
+					int x0=x+dx[i];
+					int y0=y+dy[i];
+					int x1=x+dx[i+1];
+					int y1=y+dy[i+1];
+					uint8_t C0=get_px(out_tmp,x0,y0);
+					uint8_t C1=get_px(out_tmp,x1,y1);
+
+					if((i==0||i==2||i==6)&&C0==MIN_INTENSITY) cond0=true;
+					if((i==0||i==4||i==6)&&C0==MIN_INTENSITY) cond1=true;
+
+					if(C0==MAX_INTENSITY) whites++;
+					else if(C1==MAX_INTENSITY) transitions++;
+				}
+
+			if(whites>=2&&whites<=6&&transitions==1&&cond0&&cond1) {
+				set_px(out,x,y,MIN_INTENSITY);
+				changed++;
+			}
+		}
+		}
+	}
+}
+
 void PCA(cv::Mat& data, Eigen::MatrixXd& V, Eigen::MatrixXd& D, Eigen::Vector2d& O) {
 	cv::PCA pca(data, cv::Mat(), cv::PCA::DATA_AS_ROW);
 	Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> v(pca.eigenvectors.ptr<double>(), data.cols, data.cols);
@@ -163,7 +252,91 @@ size_t mat2base64(cv::Mat& img, char*& data) {
 	return str.length();
 }
 
-// //Should keep??
+// void Bradley_thresholding(const cv::Mat& gray,cv::Mat& out,int wsize,int t,int thresh_min) {
+//     cv::Mat integral_image=cv::Mat::zeros(gray.size(),CV_32SC1);
+//     cv::Mat integral_image_sq=cv::Mat::zeros(gray.size(),CV_32SC1);
+//     cv::Mat integral_stdev=cv::Mat::zeros(gray.size(),CV_32SC1);
+
+// 	cv::Mat gray_16i=cv::Mat::zeros(gray.size(),CV_16SC1),gray_sq;
+// 	gray.convertTo(gray_16i,CV_16SC1);
+// 	gray_sq=gray_16i.mul(gray_16i);
+
+// 	std::cout<<"imagew:"<<gray_sq.cols<<std::endl;
+// 	std::cout<<"imageh:"<<gray_sq.rows<<std::endl;
+
+// 	summed_area_table<uint8_t,int>(gray,integral_image);
+// 	summed_area_table<int,int>(gray_sq,integral_image_sq);
+
+//     int d=wsize/2;
+
+//     for(size_t x=0;x<gray.cols;x++) {
+//         for(size_t y=0;y<gray.rows;y++) {
+//             int xbr=x+d,ybr=y+d;
+//             int xtl=x-d-1,ytl=y-d-1;
+//             int xtr=x+d,ytr=y-d-1;
+//             int xbl=x-d-1,ybl=y+d;
+
+//             if(xbr>=gray.cols) xbr=gray.cols-1;
+//             if(ybr>=gray.rows) ybr=gray.rows-1;
+            
+//             int br=integral_image.ptr<int>(ybr)[xbr];
+//             int br_sq=integral_image_sq.ptr<int>(ybr)[xbr];
+//             int winsum=br,winsum_sq=br_sq;
+
+//             if(xtl>=0&&ytl>=0) {
+//                 int tl=integral_image.ptr<int>(ytl)[xtl];
+//                 int tl_sq=integral_image_sq.ptr<int>(ytl)[xtl];
+
+//                 winsum+=tl;
+//                 winsum_sq+=tl_sq;
+//             }
+
+//             if(xbl>=0) {
+//                 if(ybl>=gray.rows) ybl=gray.rows-1;
+
+//                 int bl=integral_image.ptr<int>(ybl)[xbl];
+//                 winsum-=bl;
+//                 int bl_sq=integral_image_sq.ptr<int>(ybl)[xbl];
+//                 winsum_sq-=bl_sq;
+
+//             }
+
+//             if(ytr>=0) {
+//                 if(xtr>=gray.cols) xtr=gray.cols-1;
+
+//                 int tr=integral_image.ptr<int>(ytr)[xtr];
+//                 winsum-=tr;
+//                 int tr_sq=integral_image_sq.ptr<int>(ytr)[xtr];
+//                 winsum_sq-=tr_sq;
+
+//             }
+
+//             int wtlx=x-d,wtly=y-d,wbrx=xbr,wbry=ybr;
+            
+// 			if(wtlx<0) wtlx=0;
+// 			if(wtly<0) wtly=0;
+
+// 			uint8_t C=get_px1<uint8_t>(gray,x,y);
+//             int npx=(wbrx-wtlx+1)*(wbry-wtly+1);
+//             int predicted_sum=npx*(int)C;
+// 			double variance=(winsum_sq-pow(winsum,2)/npx)/npx;
+// 			double stdev=sqrt(variance);
+
+// 			if(x==100&&y==100) {
+// 				std::cout<<"var: "<<variance<<std::endl;
+// 				std::cout<<"stddev: "<<stdev<<std::endl;
+// 				std::cout<<"wsq: "<<winsum_sq<<std::endl;
+// 				std::cout<<"ws: "<<winsum<<std::endl;
+
+// 			}
+
+//             if(predicted_sum<=winsum*(100-t)/100.f||C<=thresh_min) set_px1<uint8_t>(out,x,y,0);
+// 			else set_px1<uint8_t>(out,x,y,255);
+//         }
+//     }
+// }
+
+// //Should keep
 // void find_lines(cv::Mat img, std::vector<cv::Vec2f >& lines, float r, float theta, int hough_threshold, int low_treshold, int high_threshold, int kernel_size)
 // {
 // 	cv::Mat edges;

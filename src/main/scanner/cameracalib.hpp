@@ -15,12 +15,12 @@ namespace scanner {
     class cameracalib {
         public:
             cv::Mat K, D;
-            cv::Size board_size=cv::Size(9,6),square_size=cv::Size(25,25);
-            const int captures=80;
+            cv::Size pattern_size=cv::Size(9,6);
+            const double square_width=16;
+            const int captures=35;
             
             cameracalib();
 
-            // void load();
             void save(std::string fpath);        
             bool load(std::string fpath);
     };

@@ -2,17 +2,10 @@
 #define COMMAND_H_
 
 #include <json.hpp>
-#include <flags.hpp>
+#include <globals.hpp>
 #include <memory>
 
 namespace scanner {    
-    // struct jcommand {
-    //     int code;
-    // };
-    
-    // void to_json(nlohmann::json& j, const jcommand& data);
-    // void from_json(const nlohmann::json& j, jcommand& data);
-
     class scanner;
 
     class command {

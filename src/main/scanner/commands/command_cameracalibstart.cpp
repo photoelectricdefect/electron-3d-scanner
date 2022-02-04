@@ -10,7 +10,6 @@
 #include <boost/thread.hpp>
 #include <cameracalib.hpp>
 #include <json.hpp>
-#include <flags.hpp>
 #include <vector>
 
 namespace scanner {
@@ -24,50 +23,55 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
     ctx.camera.video_alive = true;
 
     std::shared_ptr<cv::VideoCapture> cap(new cv::VideoCapture);
-    cap->open(0);
+    int videoid=camera::get_videoid("USB 2.0 Camera: USB Camera");
+
+    if(videoid==-1) {
+        std::cerr<<"could not detect USB camera"<<std::endl;
+    }
+
+    cap->open(videoid);
     cap->set(cv::CAP_PROP_FRAME_WIDTH, 1600);          
     cap->set(cv::CAP_PROP_FRAME_HEIGHT, 1200);         
 
-        if (!cap->isOpened()) {
-            std::cerr << "error opening camera" << std::endl;
-        }
+    if (!cap->isOpened()) {
+        std::cerr << "error opening camera" << std::endl;
+    }
 
-    auto fncamera = [ self, calib = ctx.camera.calib,cap]()
+    auto fncamera = [ self,cap]()
     {
-        // nlohmann::json j;
-        // j["prop"] = "captures";
-        // j["value"] = 0;
-        // self->ctx.stremit(EV_PROPCHANGED, j.dump(), true);
+        int captures=self->ctx.camera.calib.captures;
+        auto pattern_size=self->ctx.camera.calib.pattern_size;
+        int patternh = pattern_size.height,
+            patternw = pattern_size.width;
+        double squareh = self->ctx.camera.calib.square_width,
+            squarew = self->ctx.camera.calib.square_width;
 
-        int boardh = calib.board_size.height,
-            boardw = calib.board_size.width,
-            squareh = calib.square_size.height,
-            squarew = calib.square_size.width;
-        
-        std::vector<std::vector<cv::Point2f> > img_pts;
-        std::vector<std::vector<cv::Point3f>> world_pts;
+        std::vector<std::vector<cv::Point2f>> image_board_points;
+        std::vector<std::vector<cv::Point3f>> world_board_points;
 
-        for(int c=0;c<calib.captures;c++) {
-            std::vector<cv::Point3f> tmp;
+        for(int c=0;c<captures;c++) {
+            std::vector<cv::Point3f> board_points;
             
-            for (int i = 0; i < boardh; i++) {
-                for (int j = 0; j < boardw; j++) {
-                    tmp.push_back(cv::Point3f(j*squarew, i*squareh, 0));
+            for (int i = 0; i < patternh; i++) {
+                for (int j = 0; j < patternw; j++) {
+                    board_points.push_back(cv::Point3f(j*squarew, i*squareh, 0));
                 }
             }
         
-            world_pts.push_back(tmp);
+            world_board_points.push_back(board_points);
         }
 
         cv::Mat frame, gray;
         bool running = true, interrupted = false;
-        int caps = 0;
+        int current_captures = 0;
         self->ctx.camera.clear_key_camera();
+        std::vector<std::vector<cv::Point2f>> image_board_points_history;
+        int ncorners=patternh*patternw;
 
         while (running) {
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
-                int keycode = self->ctx.camera.get_key_camera();
+                int keycode = self->ctx.camera.get_key_camera();                
                 cap->read(frame);
 
                 if (frame.empty()) {
@@ -75,35 +79,56 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
                     continue;
                 }
 
+                const int history_len=5;
                 cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-                std::vector<cv::Point2f> pts;
-                bool found = cv::findChessboardCorners(gray, calib.board_size, pts);
+                std::vector<cv::Point2f> image_points;
+                bool found = cv::findChessboardCorners(gray, pattern_size, image_board_points,cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FILTER_QUADS);
 
                 if (found) {
-                    cv::cornerSubPix(gray, pts, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 0.1));
+                    cv::cornerSubPix(gray, image_points, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 0.1));
+                    image_board_points_history.push_back(image_points);
+                    std::vector<cv::Point2f> avg_image_board_points;
 
-                    // cv::Mat rvecs, tvec;
-                    // bool solved = cv::solvePnP(world_pts[0],pts,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
+                    if(image_board_points_history.size()>history_len) {
+                        image_board_points_history.erase(image_board_points_history.begin());
+                    }
+
+                        for(int i=0;i<ncorners;i++) {
+                            float x=0,y=0; 
+
+                            for(int j=0;j<image_board_points_history.size();j++) {
+                                x+=image_board_points_history[j][i].x;
+                                y+=image_board_points_history[j][i].y;
+                            }
+
+                            x/=image_board_points_history.size();
+                            y/=image_board_points_history.size();
+                            avg_image_board_points.push_back(cv::Point2f(x,y));
+                        }
+
+
+                    cv::Mat rvecs, tvec;
+                    bool solved = cv::solvePnP(world_board_points[0],avg_image_board_points,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
                     
-                    // if(solved) {
-                    //     cv::Rodrigues(rvecs, rvecs);
-                    //     std::cout<<"rvecs:"<<rvecs<<std::endl;
-                    //     std::cout<<"tvec:"<<tvec<<std::endl;
-                    // }
+                    if(solved) {
+                        cv::Rodrigues(rvecs, rvecs);
+                        std::cout<<"rvecs:"<<rvecs<<std::endl;
+                        std::cout<<"tvec:"<<tvec<<std::endl;
+                    }
 
                     if (keycode == KEYCODE_SPACE) {
-                        img_pts.push_back(pts);
-                        caps++;
+                        image_board_points.push_back(avg_image_board_points);
+                        current_captures++;
                         // nlohmann::json j;
                         // j["prop"] = "cameracalibcapturecomplete";
                         // j["value"] = caps;
                         self->ctx.stremit(EV_CAMERACALIBCAPTURED, "", true);
 
-                        if (caps >= calib.captures)
+                        if (current_captures >= captures)
                             running = false;
                     }
 
-                    cv::drawChessboardCorners(frame, calib.board_size, cv::Mat(pts), found);
+                    cv::drawChessboardCorners(frame, pattern_size, cv::Mat(avg_image_board_points), found);
                 }
 
                 auto imupdate = [self, &frame]() {
@@ -126,7 +151,7 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
 
         if (!interrupted) {
             cv::Mat rvecs, tvec;
-            std::cout<<"rms:"<<cv::calibrateCamera(world_pts, img_pts, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec)<<std::endl;
+            std::cout<<"rms:"<<cv::calibrateCamera(world_board_points, image_board_points, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec)<<std::endl;
             std::cout<<"KCAM:"<<self->ctx.camera.calib.K<<std::endl;
             std::cout<<"DCAM:"<<self->ctx.camera.calib.D<<std::endl;
             self->ctx.camera.calib.save("cameracalib.json");

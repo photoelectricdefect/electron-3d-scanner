@@ -1,4 +1,4 @@
-const debug=false;
+const debug=true;
 
 const events =  {
     status: "status",
@@ -20,6 +20,7 @@ const events =  {
     rotate: "rotate",
     cameracalibcaptured: "cameracalibcaptured",
     scannercalibdata: "scannercalibdata",
+    scandata: "scandata",
     debugcapture:"debugcapture"
   };
   
@@ -47,11 +48,11 @@ const events =  {
     videoalive: "videoalive",
     calibratingcamera: "calibratingcamera",
     calibratingscanner: "calibratingscanner",
-    scanning: "scanning",
     cameracalibrated: "cameracalibrated",
     scannercalibrated: "scannercalibrated",
-    cameracalibcaptures:"cameracalibcaptures"
-};
+    cameracalibcaptures:"cameracalibcaptures",
+    cameralist:"cameralist"
+  };
 
   const rotation={
     clockwise:0,

@@ -21,7 +21,7 @@
 
 
 #include <boost/thread.hpp>
-#include <flags.hpp>
+#include <globals.hpp>
 
 namespace scanner {  
 scanner sc;
@@ -29,6 +29,7 @@ std::map<std::string, Napi::FunctionReference> ev_handlers;
 
 scanner::scanner() {
     //calibrated=calib.load("scannercalib.json");
+    scconfig.load();
 }
 
 void scanner::load_point_cloud() {}
@@ -210,7 +211,7 @@ void setprop(const Napi::CallbackInfo& info) {
             };
 
             sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)));
-    }
+    } 
 }
 
 Napi::Value getprop(const Napi::CallbackInfo& info) {
@@ -247,8 +248,24 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
             else if(!prop.compare(PROP_CAMERA_CALIB_CAPTURES)) {
                 // boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
                 ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.calib.captures));
+            }
+            else if(!prop.compare(PROP_CAMERALIST)) {
+                auto cam_list=camera::get_camera_list();
+                nlohmann::json jarray = nlohmann::json::array();
+
+                for(int i=0;i<cam_list.size();i++) {
+                    nlohmann::json j;
+                    j["id"]=cam_list[i].id;
+                    j["name"]=cam_list[i].name;
+                    jarray.push_back(j);
+                }
+
+                nlohmann::json j;
+                j["data"] = jarray;
+                ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }            
         };
+
         ctx->tsfn.NonBlockingCall(getprop);
         ctx->tsfn.Release();
     };

@@ -11,7 +11,13 @@ namespace scanner {
             void command_videostart::execute(std::shared_ptr<command> self) {
                 ctx.camera.video_alive = true;
                 std::shared_ptr<cv::VideoCapture> cap(new cv::VideoCapture);
-                cap->open(0);
+            int videoid=camera::get_videoid("USB 2.0 Camera: USB Camera");
+
+            if(videoid==-1) {
+                std::cerr<<"could not detect USB camera"<<std::endl;
+            }
+
+                cap->open(videoid);
                 cap->set(cv::CAP_PROP_FRAME_WIDTH, 640);          
                 cap->set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
 

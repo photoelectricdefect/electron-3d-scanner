@@ -20,6 +20,10 @@ var index = () => {
     let videoSpinner = document.getElementById("video-spinner");
     let scannerCalibPlotButton = document.getElementById("scanner-calibration-plot-btn");
     let scannerCalibResetBtn = document.getElementById("scanner-calibration-reset-btn");
+    let scanBtn = document.getElementById("scan-btn");
+    let scanPlotBtn = document.getElementById("scan-plot-btn");
+    let cameraSelect=document.getElementById("camera-select");
+    let cameraListLoadBtn=document.getElementById("camera-list-load-btn");
 
     let videoalive = false;
     let calibratingcamera = false;
@@ -34,6 +38,8 @@ var index = () => {
     let scannerCalibPoints=[];
     let scannerCalibPlane=null;
     let scannerCalibPlotWin=null;
+    let scanPlotWin=null;
+    let scanPoints=[];
 
     let cameraCalibCaptures=0;      
 
@@ -155,6 +161,59 @@ var index = () => {
         cameracalibrated = val;
     };
 
+    const scanningChanged = (val) => {
+        console.log("reqrewrwer\n");
+
+        // if(val) {
+        //     scanner.addListener(config.events.scannercalibdata, scannerCalibData);
+        //     slideshow.classList.remove("invisible");
+        //     videoBtn.disabled=true;
+        //     camCalibBtn.disabled=true;
+        //     scannerCalibBtn.textContent = "Stop";
+        // }
+        // else {
+        //     if(scannerCalibPlotWin!=null) scannerCalibPlotWin.close();
+
+        //     scanner.removeListener(config.events.scannercalibdata, scannerCalibData);
+        //     scannerCalibImages=[];
+        //     slideshow.innerHTML='';
+        //     slideshow.classList.add("invisible");
+        //     videoBtn.disabled=false;
+        //     camCalibBtn.disabled=false;
+        //     scannerCalibBtn.textContent = "Start";
+        // }
+
+
+        if(val) {
+            scanner.addListener(config.events.scandata, scanData);
+            scanBtn.textContent = "Stop";
+        }
+        else {
+            scanBtn.textContent = "Start";
+        }
+        
+        scanning = val;
+    };
+
+    const scanData = (msg) => {
+        msg=JSON.parse(msg);
+        console.log(msg);
+
+        if(msg["type"]=="points") {
+            scanPoints.push(msg);
+
+            if(scanPlotWin!=null&&!scanPlotWin.isDestroyed()) {                
+                scanPlotWin.webContents.send('data', msg);
+            }
+        }
+        else if(msg["type"]=="axis") {
+            if(scanPlotWin!=null&&!scanPlotWin.isDestroyed()) {                
+                scanPlotWin.webContents.send('data', msg);
+            }
+        }
+    };
+
+
     const camCalibCaptured = () => {
         camCalibCaptures.innerText = ++cameraCalibCaptures;
     };
@@ -237,6 +296,18 @@ var index = () => {
         scannercalibrated = val;
     };
 
+    const loadCameraList=()=> {
+        scanner.getProp(config.properties.cameralist).then((response)=> {
+            response=JSON.parse(response);
+            cameraSelect.innerHTML="";
+
+            for(var i=0;i<response.data.length;i++) {
+                var option = document.createElement("option");
+                option.text = response.data[i].name;
+                cameraSelect.add(option);  
+            }
+        });
+    };
 
     const stopvideo = () => {
         videoSpinner.classList.add("invisible");
@@ -293,16 +364,16 @@ var index = () => {
         scanner.sendCommand(JSON.stringify({code:config.commands.rotate,direction:config.rotation.counterclockwise}));
     };
 
-    const startscanning = () => {
+    const scanStart = () => {
         // ipcRenderer.send("forward-command", {code:config.commands.startcameracalib});
         //TODO: register
-        scanner.sendCommand(JSON.stringify({code:config.commands.startcameracalib}));
+        scanner.sendCommand(JSON.stringify({code:config.commands.scanstart}));
     };
 
-    const stopscanning = () => {
+    const scanStop = () => {
         // ipcRenderer.send("forward-command", {code:config.commands.stopcameracalib});
         //TODO: register
-        scanner.sendCommand(JSON.stringify({code:config.commands.stopcameracalib}));
+        scanner.sendCommand(JSON.stringify({code:config.commands.scanstop}));
     };
 
     // let laserState=0;
@@ -345,8 +416,25 @@ var index = () => {
 
             rotateRightBtn.addEventListener("click", (e) => {
                 rotateright();
+            });
 
-                // openWin();
+            scanBtn.addEventListener("click", (e) => {
+                if(scanning) scanStop();
+                else scanStart();
+            });
+
+            cameraListLoadBtn.addEventListener("click", (e) => {
+                loadCameraList();
+            });
+
+            scanPlotBtn.addEventListener("click",(e)=> {
+                scanPlotWin=openWin("scanPlot.html");
+
+                scanPlotWin.webContents.once("did-finish-load",()=>{
+                    scanPlotWin.webContents.send('data', scanPoints);
+                });
+
+                /*if(config.debug)*/ scanPlotWin.webContents.openDevTools();
             });
 
             scannerCalibResetBtn.addEventListener("click", (e) => {
@@ -417,6 +505,8 @@ var index = () => {
             //     index.webContents.send(config.events.propchanged, msg);
             //   });
           
+            scanner.addListener(config.events.scandata, scanData);
+
             scanner.addListener(config.events.propchanged, (msg) => {                
                 msg=JSON.parse(msg);
 
@@ -429,9 +519,11 @@ var index = () => {
                 else if(msg["prop"] == config.properties.cameracalibrated)
                     cameraCalibratedChanged(msg["value"]);                
                 else if(msg["prop"] == config.properties.scannercalibrated)
-                    scannercalibratedChanged(msg["value"]);                
-                
-            });
+                    scannercalibratedChanged(msg["value"]);                                
+                else if(msg["prop"] == config.properties.scanning)
+                    scanningChanged(msg["value"]);                
+
+                });
 
             // scanner.addListener(config.events.cameracalibcaptured, camCalibCaptured);          
             // scanner.addListener(config.events.scannerCalibData,scannerCalibData);          
@@ -449,10 +541,10 @@ var index = () => {
                 });
             });
 
-            if(/*config.debug*/false) {
+            if(config.debug/*false*/) {
                 scanner.addListener(config.events.debugcapture, (base64)=> {
                     let win=openWin("debugCapture.html");
-    
+
                     win.webContents.once("did-finish-load",()=>{
                         win.webContents.send('data', base64);
                     });
@@ -471,6 +563,12 @@ var index = () => {
             scanner.getProp(config.properties.scannercalibrated).then((response)=> {
                 scannercalibratedChanged(response);
             });
+
+            loadCameraList();
+
+            // scanner.getProp(config.properties.scanstart).then((response)=> {
+            //     scannercalibratedChanged(response);
+            // });
 
             scanner.getProp(config.properties.cameracalibcaptures).then((response)=> {
                 camCalibCapturesMax.innerText=response;

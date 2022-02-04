@@ -21,7 +21,15 @@
         <div class="row" style="height:50px;">
     </div>
     <div class="row">
-        <div class="col-12 d-flex justify-content-start align-items-center divider">
+        <div class="col-12 d-flex justify-content-start align-items-center">
+            <select id="camera-select">
+            </select>    
+        </div>
+        <div class="col-12 d-flex justify-content-start align-items-center mt-3">
+            <button id="camera-list-load-btn" class="ml-1 btn-red" type="button">Load</button>
+        </div>
+
+        <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
             <span class="ml-2"><b>Video</b></span>
         </div>
         <!-- <div class="w-100"></div>        -->
@@ -69,6 +77,18 @@
                     <button  class="ml-1 mt-2 btn-red" id="scanner-calibration-btn" type="button">Start</button>
                     <button  class="ml-1 mt-2 btn-red" id="scanner-calibration-reset-btn" type="button">Clear</button>
                     <button  class="ml-1 mt-2 btn-red" id="scanner-calibration-plot-btn" type="button">Open point plot</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 d-flex justify-content-start align-items-center divider mt-3">
+            <span class="ml-2"><b>Scanning</b></span>
+        </div>
+        <!-- <div class="w-100"></div>     -->
+        <div class="col-12 mt-3">
+            <div class="row">
+                <div class="col-12">
+                    <button  class="ml-1 mt-2 btn-red" id="scan-btn" type="button">Start</button>
+                    <button  class="ml-1 mt-2 btn-red" id="scan-plot-btn" type="button">Open point plot</button>
                 </div>
             </div>
         </div>

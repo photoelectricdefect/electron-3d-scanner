@@ -25,8 +25,8 @@ namespace scanner {
             shared_queue<std::shared_ptr<command>> commandq;
             camera_ camera;
             microcontroller controller;
-            scannercalib calib;
-            // scanconfig scanconf;
+            scannercalib sccalib;
+            scanconfig scconfig;
 
 
             scanner();

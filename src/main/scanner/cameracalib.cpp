@@ -37,7 +37,6 @@ void cameracalib::save(std::string fpath) {
     file.close();
 }       
 
-//For now manually init 
 bool cameracalib::load(std::string fpath) {
     try {
     std::ifstream file(fpath);
