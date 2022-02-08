@@ -43,13 +43,16 @@ namespace scanner
                          EV_DEBUGCAPTURE = "debugcapture";
 
        const std::string PROP_VIDEOALIVE = "videoalive",
-                         PROP_CALIBRATINGCAMERA = "calibratingcamera",
-                         PROP_CALIBRATINGSCANNER = "calibratingscanner",
-                         PROP_SCANNING = "scanning",
-                         PROP_CAMERACALIBRATED = "cameracalibrated",
-                         PROP_SCANNERCALIBRATED = "scannercalibrated",
-                         PROP_CAMERA_CALIB_CAPTURES = "cameracalibcaptures",
-                         PROP_CAMERALIST = "cameralist";
+                        PROP_CALIBRATINGCAMERA = "calibratingcamera",
+                        PROP_CALIBRATINGSCANNER = "calibratingscanner",
+                        PROP_SCANNING = "scanning",
+                        PROP_CAMERACALIBRATED = "cameracalibrated",
+                        PROP_SCANNERCALIBRATED = "scannercalibrated",
+                        PROP_CAMERA_CALIB_CAPTURES = "cameracalibcaptures",
+                        PROP_CAMERALIST = "cameralist",
+                        PROP_SCANNER_CALIBRATION_DATA = "scannercalibrationdata",
+                        PROP_SCAN_RENDER_DATA = "scanrenderdata";
+
 
        const int KEYCODE_SPACE = 32,
                  KEYCODE_C = 67,
@@ -72,7 +75,7 @@ namespace scanner
            COMM_CONTROLLERSTART = 18,
            COMM_CONTROLLERSTOP = 19,
            COMM_ROTATE = 20,
-           COMM_LASERSET = 21;
+           COMM_TOGGLELASER = 21;
 }
 
 #endif

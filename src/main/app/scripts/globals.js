@@ -41,7 +41,7 @@ const events =  {
     controllerstart:18,
     controllerstop:19,
     rotate:20,
-    laserset:21
+    togglelaser:21
   };
 
   const properties = {
@@ -51,7 +51,9 @@ const events =  {
     cameracalibrated: "cameracalibrated",
     scannercalibrated: "scannercalibrated",
     cameracalibcaptures:"cameracalibcaptures",
-    cameralist:"cameralist"
+    cameralist:"cameralist",
+    scannercalibrationdata:"scannercalibrationdata",
+    scanrenderdata:"scanrenderdata",
   };
 
   const rotation={
@@ -59,9 +61,9 @@ const events =  {
     counterclockwise:1
   };
 
-  exports.config = {};
-  exports.config.debug = debug;
-  exports.config.commands = commands;
-  exports.config.events = events;
-  exports.config.rotation = rotation;
-  exports.config.properties = properties;
+  globals = {};
+  globals.debug = debug;
+  globals.commands = commands;
+  globals.events = events;
+  globals.rotation = rotation;
+  globals.properties = properties;

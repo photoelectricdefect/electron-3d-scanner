@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - buffergeometry - particles</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="../styles/external/main.css">
+	</head>
+	<body>
+
+		<div id="container"></div>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgl - buffergeometry - particles</div>
+
+		<script src="../scripts/scan.js" type="module"></script>
+
+		<script type="module">
+			import { scan } from '../scripts/scan.js';
+
+			window.onload = () => {
+				let _scan = scan();
+				_scan.init();                
+			};    
+
+			// const { ipcRenderer } = require('electron');
+
+			// import * as THREE from '../../node_modules/three/build/three.module.js';
+			// // import * as THREE from 'three';
+
+			// import { OrbitControls } from '../../node_modules/three/examples/jsm/controls/OrbitControls.js';
+
+			// const onWindowResize = () => {
+			// 	camera.aspect = window.innerWidth / window.innerHeight;
+			// 	// camera.updateProjectionMatrix();
+			// 	renderer.setSize( window.innerWidth, window.innerHeight );
+			// }
+
+			// const animate=()=> {
+			// 	requestAnimationFrame( animate );
+			// 	controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+			// 	renderer.render( scene, camera );
+			// }	
+
+			// let controls;
+			// let container;
+			// let camera, scene, renderer;
+			// let points;
+
+			// container = document.getElementById( 'container' );
+			// camera = new THREE.PerspectiveCamera( 27, window.innerWidth / window.innerHeight, 5, 3500 );
+			// camera.position.set( 400, 200, 0 );
+			// scene = new THREE.Scene();
+			// scene.background = new THREE.Color( 0xcccccc );
+			// scene.fog = new THREE.Fog( 0xcccccc, 2000, 3500 );
+			// renderer = new THREE.WebGLRenderer();
+			// renderer.setPixelRatio( window.devicePixelRatio );
+			// renderer.setSize( window.innerWidth, window.innerHeight );
+			// controls = new OrbitControls( camera, renderer.domElement );
+			// controls.listenToKeyEvents( window ); // optional
+			// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			// controls.dampingFactor = 0.05;
+			// controls.screenSpacePanning = false;
+			// controls.minDistance = 100;
+			// controls.maxDistance = 500;
+			// controls.maxPolarAngle = Math.PI / 2;			
+			// container.appendChild( renderer.domElement );
+
+			// const MAX_POINTS=500000;
+			// const geometry = new THREE.BufferGeometry();
+			// const positions = new Float32Array( MAX_POINTS * 3 );
+			// const colors = new Float32Array( MAX_POINTS * 3 );
+			// geometry.setAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+			// geometry.setAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+			// const material = new THREE.PointsMaterial( { size: 15, vertexColors: true } );
+			// points = new THREE.Points( geometry, material );
+			// scene.add( points );
+
+			// const color = new THREE.Color();
+			// let npoints=0;
+			// let arrayFrom=0;
+			// let arrayTo=0;
+
+			// renderer.render( scene, camera );
+			// window.addEventListener( 'resize', onWindowResize );
+
+			// ipcRenderer.on('data', (e,d)=> {
+			// 	console.log(d);
+
+			// 	if(d.type=="points") {
+			// 		npoints+=d.npoints;
+			// 		arrayFrom=arrayTo;
+			// 		arrayTo+=d.npoints*3;
+			// 		const positionsArray=points.geometry.attributes.position.array;
+			// 		const colorsArray=points.geometry.attributes.color.array;
+
+			// 		for(let i=arrayFrom,j=arrayFrom,index=0;i<arrayTo;index++) {
+			// 			positionsArray[i++]=d.position[0][index];
+			// 			positionsArray[i++]=d.position[1][index];
+			// 			positionsArray[i++]=d.position[2][index];
+			// 			color.setRGB( d.color[0][index], d.color[1][index], d.color[2][index] );
+			// 			colorsArray[j++]=color.r;
+			// 			colorsArray[j++]=color.g;
+			// 			colorsArray[j++]=color.b;
+			// 		}
+
+			// 		// console.log(positionsArray);
+			// 		// console.log(colorsArray);
+
+			// 		points.geometry.setDrawRange( 0, npoints );
+			// 		points.geometry.attributes.position.needsUpdate = true;
+			// 		// points.geometry.attributes.color.needsUpdate = true;
+			// 		points.geometry.computeBoundingSphere();
+			// 		renderer.render( scene, camera );                
+			// 	}
+            //     else if(d.type=="axis") {
+            //       console.log(d);
+            //       let len=50;
+
+			// 	  let npoints=d.npoints;
+            //       let nedges=d.orbit_points[0].length/npoints;
+            //       let start=0;
+
+			// 	}
+			// });
+
+			// animate();
+
+			// init();
+			// animate();
+
+			// function init() {
+
+
+			// 	const n = 1000, n2 = n / 2; // particles spread in the cube
+
+			// 	for ( let i = 0; i < particles; i ++ ) {
+
+			// 		// positions
+
+			// 		const x = Math.random() * n - n2;
+			// 		const y = Math.random() * n - n2;
+			// 		const z = Math.random() * n - n2;
+
+			// 		positions.push( x, y, z );
+
+			// 		// colors
+
+			// 		const vx = ( x / n ) + 0.5;
+			// 		const vy = ( y / n ) + 0.5;
+			// 		const vz = ( z / n ) + 0.5;
+
+			// 		color.setRGB( vx, vy, vz );
+
+			// 		colors.push( color.r, color.g, color.b );
+
+			// 	}
+
+			// 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+			// 	geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+			// 	geometry.computeBoundingSphere();
+
+			// 	//
+
+			// 	const material = new THREE.PointsMaterial( { size: 15, vertexColors: true } );
+
+			// 	points = new THREE.Points( geometry, material );
+			// 	scene.add( points );
+
+			// 	//
+
+			// 	renderer = new THREE.WebGLRenderer();
+			// 	renderer.setPixelRatio( window.devicePixelRatio );
+			// 	renderer.setSize( window.innerWidth, window.innerHeight );
+
+			// 	container.appendChild( renderer.domElement );
+
+			// 	//
+
+			// 	stats = new Stats();
+			// 	container.appendChild( stats.dom );
+
+			// 	//
+
+			// 	window.addEventListener( 'resize', onWindowResize );
+
+			// }
+
+			// function onWindowResize() {
+			// 	camera.aspect = window.innerWidth / window.innerHeight;
+			// 	camera.updateProjectionMatrix();
+			// 	renderer.setSize( window.innerWidth, window.innerHeight );
+			// }
+
+			// function animate() {
+			// 	requestAnimationFrame( animate );
+			// 	render();
+			// 	stats.update();
+			// }
+
+			// function render() {
+
+			// 	const time = Date.now() * 0.001;
+			// 	points.rotation.x = time * 0.25;
+			// 	points.rotation.y = time * 0.5;
+			// 	renderer.render( scene, camera );
+
+			// }
+
+		</script>
+
+	</body>
+</html>

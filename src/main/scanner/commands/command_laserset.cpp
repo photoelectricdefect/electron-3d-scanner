@@ -11,12 +11,11 @@ command_laserset::command_laserset(scanner& ctx, int code, int state_)
 
 void command_laserset::execute(std::shared_ptr<command> self)
 {
-    auto comm = [ self, st = state ]()
+    auto comm = [ self, state_=state ]()
     {
         bool err = false;
         nlohmann::json response;
-        std::string msg="laser;" + microcontroller::format("state", st);
-        self->ctx.controller.send_message(msg,response,500,err);
+        self->ctx.controller.set_laser(state_, 10, response, 2000, err);
 
         if (!err)
             self->ctx.stremit(EV_LASERSET, "", true);

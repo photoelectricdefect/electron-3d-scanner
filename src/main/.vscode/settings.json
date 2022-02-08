@@ -80,6 +80,5 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp"
-    },
-    "editor.formatOnSave": true
+    }
 }

@@ -57,7 +57,7 @@ namespace scanner {
                             else if(comm->code == COMM_ROTATE) {
                                 if(self->ctx.camera.calibrating||self->ctx.scanning||self->ctx.calibrating) continue;
                             } 
-                            else if(comm->code == COMM_LASERSET) {
+                            else if(comm->code == COMM_TOGGLELASER) {
                                 if(self->ctx.camera.calibrating||self->ctx.scanning||self->ctx.calibrating) continue;
                             } 
 

@@ -129,13 +129,12 @@ namespace scanner
     void microcontroller::set_laser(int state, int delay, nlohmann::json &response, int timeout, bool &err)
     {
         auto msg = "laser;" + microcontroller::format("state", state) + microcontroller::format("delay", delay);
-        ;
         send_message(msg, response, timeout, err);
     }
 
-    void microcontroller::rotate(std::string direction, float angle, nlohmann::json &response, int timeout, bool &err)
+    void microcontroller::rotate(std::string direction, float steps, int delay, nlohmann::json &response, int timeout, bool &err)
     {
-        auto msg = "rotate;" + microcontroller::format("angle", angle) + microcontroller::format("direction", direction);
+        auto msg = "rotate;" + microcontroller::format("steps", steps) + microcontroller::format("direction", direction)+ microcontroller::format("delay", delay);
         send_message(msg, response, timeout, err);
     }
 }

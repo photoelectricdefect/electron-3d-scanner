@@ -41,7 +41,7 @@ namespace scanner
         void send_message(std::string msg, nlohmann::json &response, int timeout, bool &err);
 
         void set_laser(int state, int delay, nlohmann::json &response, int timeout, bool &err);
-        void rotate(std::string direction, float angle, nlohmann::json &response, int timeout, bool &err);
+        void rotate(std::string direction, float angle,int delay, nlohmann::json &response, int timeout, bool &err);
 
         static std::string format(std::string identifier, std::string value);
         static std::string format(std::string identifier, int value);

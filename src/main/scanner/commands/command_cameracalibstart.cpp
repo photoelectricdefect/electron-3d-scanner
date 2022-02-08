@@ -39,7 +39,8 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
 
     auto fncamera = [ self,cap]()
     {
-        int captures=self->ctx.camera.calib.captures;
+        const bool release_object=true;
+        int n_captures=self->ctx.camera.calib.n_captures;
         auto pattern_size=self->ctx.camera.calib.pattern_size;
         int patternh = pattern_size.height,
             patternw = pattern_size.width;
@@ -49,7 +50,7 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
         std::vector<std::vector<cv::Point2f>> image_board_points;
         std::vector<std::vector<cv::Point3f>> world_board_points;
 
-        for(int c=0;c<captures;c++) {
+        for(int c=0;c<n_captures;c++) {
             std::vector<cv::Point3f> board_points;
             
             for (int i = 0; i < patternh; i++) {
@@ -65,7 +66,7 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
         bool running = true, interrupted = false;
         int current_captures = 0;
         self->ctx.camera.clear_key_camera();
-        std::vector<std::vector<cv::Point2f>> image_board_points_history;
+        // std::vector<std::vector<cv::Point2f>> image_board_points_history;
         int ncorners=patternh*patternw;
 
         while (running) {
@@ -79,56 +80,56 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
                     continue;
                 }
 
-                const int history_len=5;
+                // const int history_len=5;
                 cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
                 std::vector<cv::Point2f> image_points;
-                bool found = cv::findChessboardCorners(gray, pattern_size, image_board_points,cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FILTER_QUADS);
+                bool found = cv::findChessboardCorners(gray, pattern_size, image_points,cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FILTER_QUADS);
 
                 if (found) {
                     cv::cornerSubPix(gray, image_points, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 30, 0.1));
-                    image_board_points_history.push_back(image_points);
-                    std::vector<cv::Point2f> avg_image_board_points;
+                    // image_board_points_history.push_back(image_points);
+                    // std::vector<cv::Point2f> avg_image_board_points;
 
-                    if(image_board_points_history.size()>history_len) {
-                        image_board_points_history.erase(image_board_points_history.begin());
-                    }
+                    // if(image_board_points_history.size()>history_len) {
+                    //     image_board_points_history.erase(image_board_points_history.begin());
+                    // }
 
-                        for(int i=0;i<ncorners;i++) {
-                            float x=0,y=0; 
+                    //     for(int i=0;i<ncorners;i++) {
+                    //         float x=0,y=0; 
 
-                            for(int j=0;j<image_board_points_history.size();j++) {
-                                x+=image_board_points_history[j][i].x;
-                                y+=image_board_points_history[j][i].y;
-                            }
+                    //         for(int j=0;j<image_board_points_history.size();j++) {
+                    //             x+=image_board_points_history[j][i].x;
+                    //             y+=image_board_points_history[j][i].y;
+                    //         }
 
-                            x/=image_board_points_history.size();
-                            y/=image_board_points_history.size();
-                            avg_image_board_points.push_back(cv::Point2f(x,y));
-                        }
+                    //         x/=image_board_points_history.size();
+                    //         y/=image_board_points_history.size();
+                    //         avg_image_board_points.push_back(cv::Point2f(x,y));
+                    //     }
 
 
-                    cv::Mat rvecs, tvec;
-                    bool solved = cv::solvePnP(world_board_points[0],avg_image_board_points,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
+                    // cv::Mat rvecs, tvec;
+                    // bool solved = cv::solvePnP(world_board_points[0],image_points,self->ctx.camera.calib.K,self->ctx.camera.calib.D,rvecs,tvec);
                     
-                    if(solved) {
-                        cv::Rodrigues(rvecs, rvecs);
-                        std::cout<<"rvecs:"<<rvecs<<std::endl;
-                        std::cout<<"tvec:"<<tvec<<std::endl;
-                    }
+                    // if(solved) {
+                    //     cv::Rodrigues(rvecs, rvecs);
+                    //     std::cout<<"rvecs:"<<rvecs<<std::endl;
+                    //     std::cout<<"tvec:"<<tvec<<std::endl;
+                    // }
 
                     if (keycode == KEYCODE_SPACE) {
-                        image_board_points.push_back(avg_image_board_points);
+                        image_board_points.push_back(image_points);
                         current_captures++;
                         // nlohmann::json j;
                         // j["prop"] = "cameracalibcapturecomplete";
                         // j["value"] = caps;
                         self->ctx.stremit(EV_CAMERACALIBCAPTURED, "", true);
 
-                        if (current_captures >= captures)
+                        if (current_captures >= n_captures)
                             running = false;
                     }
 
-                    cv::drawChessboardCorners(frame, pattern_size, cv::Mat(avg_image_board_points), found);
+                    cv::drawChessboardCorners(frame, pattern_size, cv::Mat(image_points), found);
                 }
 
                 auto imupdate = [self, &frame]() {
@@ -150,8 +151,17 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
         }
 
         if (!interrupted) {
-            cv::Mat rvecs, tvec;
-            std::cout<<"rms:"<<cv::calibrateCamera(world_board_points, image_board_points, frame.size(), self->ctx.camera.calib.K, self->ctx.camera.calib.D, rvecs, tvec)<<std::endl;
+            cv::Mat rvecs, tvec,K,D;
+            std::vector<cv::Point3f> new_world_board_points;
+            int i_fixed_point = -1;
+
+            if (release_object){
+                i_fixed_point = patternw - 1;
+            }
+
+            std::cout<<"rmsRO:"<<cv::calibrateCameraRO(world_board_points, image_board_points, frame.size(), i_fixed_point,K, D, rvecs, tvec,new_world_board_points)<<std::endl;
+            self->ctx.camera.calib.K=K;
+            self->ctx.camera.calib.D=D;
             std::cout<<"KCAM:"<<self->ctx.camera.calib.K<<std::endl;
             std::cout<<"DCAM:"<<self->ctx.camera.calib.D<<std::endl;
             self->ctx.camera.calib.save("cameracalib.json");

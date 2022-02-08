@@ -16,8 +16,8 @@ namespace scanner {
         public:
             cv::Mat K, D;
             cv::Size pattern_size=cv::Size(9,6);
-            const double square_width=16;
-            const int captures=35;
+            const double square_width=15.5;
+            const int n_captures=35;
             
             cameracalib();
 

@@ -15,11 +15,12 @@
     "electron-rebuild": "^2.3.4",
     "install": "^0.13.0",
     "jquery": "^3.5.1",
+    "mathjs": "^10.1.1",
     "micromodal": "^0.4.6",
     "node-addon-api": "^3.0.0",
     "npm": "^7.5.6",
-    "owl.carousel": "^2.3.4",
     "plotly.js-dist": "^1.58.4",
-    "sweetalert2": "^10.14.0"
+    "sweetalert2": "^10.14.0",
+    "three": "^0.137.5"
   }
 }

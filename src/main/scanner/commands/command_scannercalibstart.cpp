@@ -15,9 +15,7 @@
 #include <iostream>
 #include "bradley_thresholding/summed-area-table/summed_area_table.hpp"
 #include "bradley_thresholding/bradley_thresholding.hpp"
-// #include "helpers/sphere_fitting.hpp"
 #include "helpers/tls_line.hpp"
-// #include "helpers/alglib/cpp/src/interpolation.h"
 #include "helpers/sphere_fitting.hpp"
 #include "helpers/hyperplane_fitting.hpp"
 
@@ -846,6 +844,8 @@ namespace scanner
 
         auto K = self->ctx.camera.calib.K;
         auto D = self->ctx.camera.calib.D;
+                    // std::cerr << K << std::endl;
+                    // std::cerr << D << std::endl;
 
         auto fnvideo = [self, cap, vcap_mtx, K, D]()
         {
@@ -908,8 +908,9 @@ namespace scanner
             double start_rotation_angle = 180 - total_rotation_angle / 2;
             start_rotation_angle = start_rotation_angle >= 0 ? start_rotation_angle : 0;
             double start_angle_steps = start_rotation_angle / rotation_angle_per_step;
-            int delay_initial_rotation = 20000;
-            int delay_calibration_image_rotation = 15000;
+            int delay_initial_rotation = 15000;
+            int delay_calibration_image_rotation = 8000;
+            std::string rotation_direction=self->ctx.scconfig.rotation_direction;
 
             const int max_pose_estimation_attempts = 3;
             const int pose_history_length = 5;
@@ -1040,16 +1041,13 @@ namespace scanner
                     if (keycode == KEYCODE_SPACE)
                     {
                         bool err = false;
-                        self->ctx.controller.rotate(self->ctx.scconfig.rotation_direction, start_angle_steps, response, delay_initial_rotation, err);
+                        self->ctx.controller.rotate(self->ctx.scconfig.rotation_direction, start_angle_steps,delay_initial_rotation, response, delay_initial_rotation+1000, err);
 
                         while (n_current_images < n_calibration_images)
                         {
                             cv::Mat imnolaser, imnolaseru;
                             err = false;
-                            // msg = "laser;" + microcontroller::format("state", 0) + microcontroller::format("delay", 200);
                             self->ctx.controller.set_laser(0, 200, response, 2000, err);
-
-                            // self->ctx.controller.send_message(msg, response, 2000, err);
 
                             if (err)
                             {
@@ -1224,7 +1222,6 @@ namespace scanner
                                         intersection;
                                     bool intersects = math_helpers::intersection_line_segment(L, R,
                                                                                               translated_laser_line.a, translated_laser_line.b, intersection);
-
                                     if (intersects)
                                     {
                                         cv::circle(imlaser, cv::Point(intersection(0), intersection(1)), 5, cv::Scalar(255, 0, 0));
@@ -1285,7 +1282,7 @@ namespace scanner
                                     camera_board_points[i].push_back(camera_board_point);
                                 }
 
-                                self->ctx.controller.rotate(self->ctx.scconfig.rotation_direction, steps_per_calibration_image, response, delay_calibration_image_rotation, err);
+                                self->ctx.controller.rotate(rotation_direction, steps_per_calibration_image,delay_calibration_image_rotation, response, delay_calibration_image_rotation+1000, err);
                             }
                         }
                     }

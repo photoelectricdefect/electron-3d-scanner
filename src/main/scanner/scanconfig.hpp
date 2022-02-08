@@ -12,6 +12,7 @@ namespace scanner {
             double rotation_resolution; 
             std::string rotation_direction;
 
+
             scanconfig();
             
             void load();

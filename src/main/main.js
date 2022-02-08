@@ -2,8 +2,7 @@
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 const scanner = require("./build/Release/scanner");
-const { config } = require("./app/scripts/config");
-const { separator } = require("./app/scripts/util");
+const { globals } = require("./app/scripts/globals");
 
 global.scanner=scanner;
 let index;

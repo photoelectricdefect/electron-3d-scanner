@@ -30,6 +30,10 @@ std::map<std::string, Napi::FunctionReference> ev_handlers;
 scanner::scanner() {
     //calibrated=calib.load("scannercalib.json");
     scconfig.load();
+    bool scanner_calibrated=sccalib.load("scanner_calib.json");
+    bool camera_calibrated=camera.calib.load("cameracalib.json");
+    calibrated=scanner_calibrated;
+    camera.calibrated=camera_calibrated;
 }
 
 void scanner::load_point_cloud() {}
@@ -99,7 +103,7 @@ void send_command(const Napi::CallbackInfo& info) {
         case COMM_CONTROLLERSTOP:
             sc.invokeIO(std::shared_ptr<command>(new command_microcontrollerstop(sc, code)));
             break;
-        case COMM_LASERSET: {
+        case COMM_TOGGLELASER: {
             int state = j["state"].get<int>();
             sc.invokeIO(std::shared_ptr<command>(new command_laserset(sc, code, state)));
         }
@@ -247,7 +251,7 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
             }            
             else if(!prop.compare(PROP_CAMERA_CALIB_CAPTURES)) {
                 // boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
-                ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.calib.captures));
+                ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.calib.n_captures));
             }
             else if(!prop.compare(PROP_CAMERALIST)) {
                 auto cam_list=camera::get_camera_list();
@@ -262,6 +266,40 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
 
                 nlohmann::json j;
                 j["data"] = jarray;
+                ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
+            }
+            else if(!prop.compare(PROP_SCANNER_CALIBRATION_DATA)) {
+                auto plane_coeffs=sc.sccalib.laser_plane.coeffs();
+                auto axis_origin=sc.sccalib.rotation_axis_origin;
+                auto axis_direction=sc.sccalib.rotation_axis_direction;
+                std::vector<double> laser_plane(plane_coeffs.data(), plane_coeffs.data() + plane_coeffs.rows() * plane_coeffs.cols()),
+                rotation_axis_direction(axis_direction.data(), axis_direction.data() + axis_direction.rows() * axis_direction.cols()),
+                rotation_axis_origin(axis_origin.data(), axis_origin.data() + axis_origin.rows() * axis_origin.cols());
+
+                nlohmann::json j;
+                j["laser_plane"] = laser_plane;
+                j["rotation_axis_origin"] = rotation_axis_origin;
+                j["rotation_axis_direction"] = rotation_axis_direction;                
+                ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
+            }
+            else if(!prop.compare(PROP_SCAN_RENDER_DATA)) {
+                auto rotation_axis_radius=sc.sccalib.rotation_axis_radius;
+                auto t=sc.sccalib.rotation_axis_origin;
+                auto rotation_axis_direction=sc.sccalib.rotation_axis_direction;
+                Eigen::Matrix3d R_axis = Eigen::AngleAxisd(0, rotation_axis_direction).toRotationMatrix();
+                Eigen::Matrix<double,3,4> T_inv;
+                T_inv.block<3, 3>(0, 0) = R_axis.transpose();
+                T_inv.block<3, 1>(0, 3) = -R_axis.transpose() * t;
+                Eigen::Vector3d proj=(-t).dot(rotation_axis_direction)*rotation_axis_direction+t;
+                Eigen::Vector3d anchor_object=T_inv*Eigen::Vector4d(proj(0),proj(1),proj(2),1);
+                Eigen::Vector3d camera_origin_object=T_inv*Eigen::Vector4d(0,0,0,1);
+                std::vector<double> object_anchor(anchor_object.data(), anchor_object.data() + anchor_object.rows() * anchor_object.cols()),
+                camera_origin(camera_origin_object.data(), camera_origin_object.data() + camera_origin_object.rows() * camera_origin_object.cols());
+
+                nlohmann::json j;
+                j["object_anchor"] = object_anchor;
+                j["camera_origin"] = camera_origin;
+                j["rotation_axis_radius"] = rotation_axis_radius;
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }            
         };

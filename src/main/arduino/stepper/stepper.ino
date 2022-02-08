@@ -52,24 +52,6 @@ String get_value(String data, char separator, int index)
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-// TODO: laser, branje iz serial
-// void hstep()
-//{
-// digitalWrite(half_step_pin, HIGH);
-// digitalWrite(step_pin, HIGH);
-// delayMicroseconds(mics);
-// digitalWrite(step_pin, LOW);
-// delayMicroseconds(mics);
-// digitalWrite(half_step_pin, LOW);
-//}
-
-// void fstep()
-//{
-// digitalWrite(step_pin, HIGH);
-// delayMicroseconds(mics);
-// digitalWrite(step_pin, LOW);
-//}
-
 void setup()
 {
   pinMode(laser_pin, OUTPUT);
@@ -95,36 +77,14 @@ void loop()
     {
       String s1 = get_value(in, ';', 1);
       String s2 = get_value(in, ';', 2);
+      String s3 = get_value(in, ';', 3);
       int steps = get_value(s1, ':', 1).toInt();
       int dir = get_value(s2, ':', 1).toInt();
-
+      int t_delay = get_value(s3, ':', 1).toInt();
       stepper.move(steps);
       stepper.runToPosition();
-
-      delay(2000);
-
+      delay(t_delay);
       Serial.print("{'errcode':" + String(ERR_OK) + "}\n");
-
-      // motor
-      // kot_motor = in * 3.0;
-
-      // kot v korake
-      // if (int(kot_motor*10) % int(1.8*10) == 0){
-      // koraki = int(kot_motor/1.8);
-      // pol_korak=0;
-      //}
-      // else{
-      // pol_korak = 1;
-      // koraki = int((kot_motor-0.9)/1.8);
-      //}
-
-      // for(int i; i < koraki; i++){
-      // fstep();
-      //}
-
-      // if(pol_korak == 1){
-      // hstep();
-      //}
     }
     else if (name.equals(LASER))
     {
