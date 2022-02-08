@@ -1,4 +1,2 @@
-1. avtomatiziraj kalibracijo skenerja - DONE
-2. pri kalibraciji kamere uporabi calibrateCameraRO, kalmanov filter za kalibracijo kamere
-3. spuci sken funcijo, razmisli kako odstraniti noise
-4. arduino ne racuna kotov, sprejema le stevilo korakov
+1. spuci sken funcijo, razmisli kako odstraniti noise
+2. naredi test za natancost kalibracije osi, ki ga lahko izvede uporabnik s šahovnico

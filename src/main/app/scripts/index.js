@@ -22,7 +22,7 @@ var index = () => {
     let scannerCalibPlotButton = document.getElementById("scanner-calibration-plot-btn");
     let scannerCalibResetBtn = document.getElementById("scanner-calibration-reset-btn");
     let scanBtn = document.getElementById("scan-btn");
-    let scanPlotBtn = document.getElementById("scan-plot-btn");
+    let scanRenderBtn = document.getElementById("scan-render-btn");
     let cameraSelect=document.getElementById("camera-select");
     let cameraListLoadBtn=document.getElementById("camera-list-load-btn");
     let laserBtn=document.getElementById("laser-btn");
@@ -41,7 +41,7 @@ var index = () => {
     let scannerCalibPlane=null;
     let scannerCalibPlotWin=null;
     let scanPlotWin=null;
-    let scanWin=null;
+    let scanRenderWin=null;
     let scanPoints=[];
     let scanPointCloud= {
         positions:[[],[],[]],
@@ -218,8 +218,8 @@ var index = () => {
                 scanPlotWin.webContents.send('data', msg);
             }
 
-            if(scanWin!=null&&!scanWin.isDestroyed()) {                
-                scanWin.webContents.send('data', {points:msg}); 
+            if(scanRenderWin!=null&&!scanRenderWin.isDestroyed()) {                
+                scanRenderWin.webContents.send('data', {points:msg}); 
             }
         }
         else if(msg["type"]=="axis") {
@@ -449,21 +449,21 @@ var index = () => {
                 loadCameraList();
             });
 
-            scanPlotBtn.addEventListener("click",(e)=> {
+            scanRenderBtn.addEventListener("click",(e)=> {
                 // scanPlotWin=openWin("scanPlot.html");
-                scanWin=openWin("scan.html");
+                scanRenderWin=openWin("scanRender.html");
 
                 // scanPlotWin.webContents.once("did-finish-load",()=>{
                 //     scanPlotWin.webContents.send('data', scanPoints);
                 // });
 
                 if(scannercalibrated) {
-                    scanWin.webContents.openDevTools();
+                    scanRenderWin.webContents.openDevTools();
 
-                    scanWin.webContents.once("did-finish-load",()=>{
+                    scanRenderWin.webContents.once("did-finish-load",()=>{
                         scanner.getProp(globals.properties.scanrenderdata).then((response)=> {
-                            scanWin.webContents.send('init', {calibrationData:JSON.parse(response)});
-                            scanWin.webContents.send('data', {points:scanPointCloud});    
+                            scanRenderWin.webContents.send('init', {calibrationData:JSON.parse(response)});
+                            scanRenderWin.webContents.send('data', {points:scanPointCloud});    
                         });            
                     });
     

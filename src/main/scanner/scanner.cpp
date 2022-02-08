@@ -284,21 +284,33 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
             }
             else if(!prop.compare(PROP_SCAN_RENDER_DATA)) {
                 auto rotation_axis_radius=sc.sccalib.rotation_axis_radius;
-                auto t=sc.sccalib.rotation_axis_origin;
+                auto rotation_axis_origin=sc.sccalib.rotation_axis_origin;
                 auto rotation_axis_direction=sc.sccalib.rotation_axis_direction;
-                Eigen::Matrix3d R_axis = Eigen::AngleAxisd(0, rotation_axis_direction).toRotationMatrix();
-                Eigen::Matrix<double,3,4> T_inv;
-                T_inv.block<3, 3>(0, 0) = R_axis.transpose();
-                T_inv.block<3, 1>(0, 3) = -R_axis.transpose() * t;
-                Eigen::Vector3d proj=(-t).dot(rotation_axis_direction)*rotation_axis_direction+t;
-                Eigen::Vector3d anchor_object=T_inv*Eigen::Vector4d(proj(0),proj(1),proj(2),1);
-                Eigen::Vector3d camera_origin_object=T_inv*Eigen::Vector4d(0,0,0,1);
-                std::vector<double> object_anchor(anchor_object.data(), anchor_object.data() + anchor_object.rows() * anchor_object.cols()),
-                camera_origin(camera_origin_object.data(), camera_origin_object.data() + camera_origin_object.rows() * camera_origin_object.cols());
+                
+                Eigen::Matrix<double,3,4> T_object_frame=Eigen::Matrix<double,3,4>::Zero();
+                Eigen::Vector3d z_axis=(-rotation_axis_origin).dot(rotation_axis_direction)*rotation_axis_direction+rotation_axis_origin;                    
+                z_axis.normalize();
+                Eigen::Vector3d x_axis=z_axis.cross(rotation_axis_direction);
+                x_axis.normalize();
+                Eigen::Matrix3d R_object_frame = Eigen::Matrix3d::Zero();
+                R_object_frame.col(0)=x_axis;
+                R_object_frame.col(1)=rotation_axis_direction;
+                R_object_frame.col(2)=z_axis;
+                T_object_frame.block<3, 3>(0, 0) = R_object_frame.transpose();
+                T_object_frame.block<3, 1>(0, 3) = -R_object_frame.transpose()*rotation_axis_origin;
+
+                Eigen::Vector3d camera_origin_object_frame=T_object_frame*Eigen::Vector4d(0,0,0,1);                
+                Eigen::Vector3d camera_normal_camera_frame=(-rotation_axis_origin).dot(rotation_axis_direction)*rotation_axis_direction+rotation_axis_origin;
+                Eigen::Vector3d camera_normal_object_frame=R_object_frame.transpose()*camera_normal_camera_frame;
+                camera_normal_object_frame.normalize();
+
+                std::vector<double> object_anchor(object_anchor_object_frame.data(), object_anchor_object_frame.data() + object_anchor_object_frame.rows() * object_anchor_object_frame.cols()),
+                camera_origin(camera_origin_object_frame.data(), camera_origin_object_frame.data() + camera_origin_object_frame.rows() * camera_origin_object_frame.cols()),
+                camera_normal(camera_normal_object_frame.data(), camera_normal_object_frame.data() + camera_normal_object_frame.rows() * camera_normal_object_frame.cols());
 
                 nlohmann::json j;
-                j["object_anchor"] = object_anchor;
                 j["camera_origin"] = camera_origin;
+                j["camera_normal"] = camera_normal;
                 j["rotation_axis_radius"] = rotation_axis_radius;
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }            

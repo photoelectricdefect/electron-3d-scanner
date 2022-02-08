@@ -1,9 +1,8 @@
 const { ipcRenderer } = require('electron');
 import * as THREE from '../../node_modules/three/build/three.module.js';
 import { OrbitControls } from './external/OrbitControls.js';
-const math = require('mathjs');
 
-let scan = () => {
+let scanRender = () => {
   const onWindowResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     // camera.updateProjectionMatrix();
@@ -49,9 +48,11 @@ let scan = () => {
   let rotationAxisDirection;
   let rotationAxisRadius;
   let cameraOrigin;
+  let cameraNormal;
   let objectAnchor;
   let polarGridHelper;
   let resetControls=false;
+  let cameraLookDistance=800;
 
 	return {
       init: ()=> {
@@ -115,10 +116,10 @@ let scan = () => {
           }
 
           points.geometry.setDrawRange( 0, npoints );
-          points.geometry.attributes.position.needsUpdate = true;
-          points.geometry.attributes.color.needsUpdate = true;
           points.geometry.computeBoundingSphere();            
           points.geometry.computeBoundingBox();
+          points.geometry.attributes.position.needsUpdate = true;
+          points.geometry.attributes.color.needsUpdate = true;
           controls.saveState();
           resetControls=true;
         });
@@ -128,28 +129,14 @@ let scan = () => {
           rotationAxisDirection=d.calibrationData.rotation_axis_direction;
           objectAnchor=d.calibrationData.object_anchor;
           cameraOrigin=d.calibrationData.camera_origin;
+          cameraNormal=d.calibrationData.camera_normal;
           rotationAxisRadius=d.calibrationData.rotation_axis_radius;
-
-          // let cameraOriginVector=new THREE.Vector3(cameraOrigin[0], cameraOrigin[1], cameraOrigin[2])
-          // let objectAnchorVector=new THREE.Vector3(objectAnchor[0], objectAnchor[1], objectAnchor[2])          
-          
-          // let objectCameraDirectionVector=new THREE.Vector3();
-          // objectCameraDirectionVector.subVectors( cameraOriginVector, objectAnchorVector ).normalize();
-
-
-
           polarGridHelper = new THREE.PolarGridHelper( rotationAxisRadius, 16, 8, 64, 0xFFFFFF, 0xFFFFFF );
           polarGridHelper.position.z = objectAnchor[2];
           polarGridHelper.position.x = objectAnchor[0];
           scene.add( polarGridHelper );
-
-          // let v=objectAnchorVector.clone().add(objectCameraDirectionVector.multiplyScalar(-10));
-          // console.log(v);
-          // console.log(cameraOrigin);
-
-          camera.position.set( cameraOrigin[0], cameraOrigin[1], cameraOrigin[2] );
-          // camera.zoom=0.5;
-          controls.target = new THREE.Vector3(objectAnchor[0], objectAnchor[1], objectAnchor[2]);
+          camera.position.set( cameraOrigin[0]-cameraNormal[0]*cameraLookDistance, cameraOrigin[1]-cameraNormal[1]*cameraLookDistance, cameraOrigin[2]-cameraNormal[2]*cameraLookDistance );
+          controls.target = new THREE.Vector3( cameraOrigin[0], cameraOrigin[1], cameraOrigin[2] );
           controls.update();
         });
         
@@ -159,4 +146,4 @@ let scan = () => {
 };
 
 
-export {scan}; 
+export {scanRender}; 
