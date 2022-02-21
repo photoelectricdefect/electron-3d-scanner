@@ -46,20 +46,20 @@ void scanner::init() {
 
     // std::cout<<"K_camera: "<<camera.camera_calibration.K<<std::endl;
     // std::cout<<"D_camera: "<<camera.camera_calibration.D<<std::endl;
-    std::cout<<"square_camera: "<<camera.camera_calibration.square_size<<std::endl;
-    std::cout<<"pattern_camera: "<<camera.camera_calibration.pattern_size<<std::endl;
-    std::cout<<"ncaps_camera: "<<camera.camera_calibration.n_captures<<std::endl;
+    // std::cout<<"square_camera: "<<camera.camera_calibration.square_size<<std::endl;
+    // std::cout<<"pattern_camera: "<<camera.camera_calibration.pattern_size<<std::endl;
+    // std::cout<<"ncaps_camera: "<<camera.camera_calibration.n_captures<<std::endl;
 
     // std::cout<<"laser_plane_scanner: "<<scanner_calibration.laser_plane.coeffs()<<std::endl;
     // std::cout<<"axis_direction_scanner: "<<scanner_calibration.rotation_axis_direction<<std::endl;
     // std::cout<<"axis_origin_scanner: "<<scanner_calibration.rotation_axis_origin<<std::endl;
-    std::cout<<"square_size_scanner: "<<scanner_calibration.square_size<<std::endl;
-    std::cout<<"pattern_size_scanner: "<<scanner_calibration.pattern_size<<std::endl;
-    std::cout<<"rotation_axis_radius: "<<scanner_calibration.rotation_axis_radius<<std::endl;
-    std::cout<<"n_calibration_images: "<<scanner_calibration.n_calibration_images<<std::endl;
-    std::cout<<"stepper_gear_ratio: "<<scanner_calibration.stepper_gear_ratio<<std::endl;
-    std::cout<<"steps_per_calibration_image: "<<scanner_calibration.steps_per_calibration_image<<std::endl;
-    std::cout<<"n_captures: "<<scanner_calibration.n_captures<<std::endl;
+    // std::cout<<"square_size_scanner: "<<scanner_calibration.square_size<<std::endl;
+    // std::cout<<"pattern_size_scanner: "<<scanner_calibration.pattern_size<<std::endl;
+    // std::cout<<"rotation_axis_radius: "<<scanner_calibration.rotation_axis_radius<<std::endl;
+    // std::cout<<"n_calibration_images: "<<scanner_calibration.n_calibration_images<<std::endl;
+    // std::cout<<"stepper_gear_ratio: "<<scanner_calibration.stepper_gear_ratio<<std::endl;
+    // std::cout<<"steps_per_calibration_image: "<<scanner_calibration.steps_per_calibration_image<<std::endl;
+    // std::cout<<"n_captures: "<<scanner_calibration.n_captures<<std::endl;
     scconfig.load();
 }
 
