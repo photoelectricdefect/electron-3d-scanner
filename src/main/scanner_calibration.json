@@ -1,0 +1,12 @@
+{
+ "n_calibration_images": 20,
+ "n_captures": 20,
+ "pattern_size": [
+  9,
+  6
+ ],
+ "rotation_axis_radius": 80,
+ "square_size": 23,
+ "stepper_gear_ratio": 1.55555555556,
+ "steps_per_calibration_image": 2
+}

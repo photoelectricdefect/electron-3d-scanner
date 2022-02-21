@@ -8,7 +8,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <boost/thread.hpp>
-#include <cameracalib.hpp>
 #include <json.hpp>
 #include <vector>
 
@@ -40,12 +39,12 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
     auto fncamera = [ self,cap]()
     {
         const bool release_object=true;
-        int n_captures=self->ctx.camera.calib.n_captures;
-        auto pattern_size=self->ctx.camera.calib.pattern_size;
+        int n_captures=self->ctx.camera.camera_calibration.n_captures;
+        auto pattern_size=self->ctx.camera.camera_calibration.pattern_size;
         int patternh = pattern_size.height,
             patternw = pattern_size.width;
-        double squareh = self->ctx.camera.calib.square_width,
-            squarew = self->ctx.camera.calib.square_width;
+        double squareh = self->ctx.camera.camera_calibration.square_size,
+            squarew = self->ctx.camera.camera_calibration.square_size;
 
         std::vector<std::vector<cv::Point2f>> image_board_points;
         std::vector<std::vector<cv::Point3f>> world_board_points;
@@ -160,11 +159,11 @@ void command_cameracalibstart::execute(std::shared_ptr<command> self)
             }
 
             std::cout<<"rmsRO:"<<cv::calibrateCameraRO(world_board_points, image_board_points, frame.size(), i_fixed_point,K, D, rvecs, tvec,new_world_board_points)<<std::endl;
-            self->ctx.camera.calib.K=K;
-            self->ctx.camera.calib.D=D;
-            std::cout<<"KCAM:"<<self->ctx.camera.calib.K<<std::endl;
-            std::cout<<"DCAM:"<<self->ctx.camera.calib.D<<std::endl;
-            self->ctx.camera.calib.save("cameracalib.json");
+            self->ctx.camera.camera_calibration.K=K;
+            self->ctx.camera.camera_calibration.D=D;
+            std::cout<<"KCAM:"<<self->ctx.camera.camera_calibration.K<<std::endl;
+            std::cout<<"DCAM:"<<self->ctx.camera.camera_calibration.D<<std::endl;
+            self->ctx.camera.camera_calibration.save("cameracalib.json");
             boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_calibrated);
             self->ctx.camera.calibrated = true;
             lock.unlock();

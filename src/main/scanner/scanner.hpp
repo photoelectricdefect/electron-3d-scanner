@@ -6,8 +6,8 @@
 #include <boost/thread.hpp>
 #include <models/shared_queue.hpp>
 #include <commands/command.hpp>
-#include <cameracalib.hpp>
-#include <scannercalib.hpp>
+#include <camera_calibration.hpp>
+#include <scanner_calibration.hpp>
 #include <scanconfig.hpp>
 #include <microcontroller.hpp>
 #include <camera.hpp>
@@ -15,6 +15,7 @@
 #include <memory>
 
 using camera_ = scanner::camera;
+using scanner_calibration_ = scanner::scanner_calibration;
 
 namespace scanner {
     class scanner {
@@ -25,11 +26,13 @@ namespace scanner {
             shared_queue<std::shared_ptr<command>> commandq;
             camera_ camera;
             microcontroller controller;
-            scannercalib sccalib;
+            scanner_calibration_ scanner_calibration;
             scanconfig scconfig;
 
 
             scanner();
+            void init();
+
             //move these to their own command objects
             //--------
             void load_point_cloud();

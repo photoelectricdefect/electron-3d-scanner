@@ -73,8 +73,8 @@ namespace scanner
 
         // TODO: Make settings object to save scan settings like resolution, etc...
 
-        auto K = self->ctx.camera.calib.K;
-        auto D = self->ctx.camera.calib.D;
+        auto K = self->ctx.camera.camera_calibration.K;
+        auto D = self->ctx.camera.camera_calibration.D;
                     // std::cerr << K << std::endl;
                     // std::cerr << D << std::endl;
 
@@ -141,34 +141,34 @@ namespace scanner
             K.ptr<double>(1)[0],K.ptr<double>(1)[1],K.ptr<double>(1)[2],
             K.ptr<double>(2)[0],K.ptr<double>(2)[1],K.ptr<double>(2)[2];
 
-            Eigen::Vector3d rotation_axis_direction=self->ctx.sccalib.rotation_axis_direction;
-            Eigen::Vector3d rotation_axis_origin=self->ctx.sccalib.rotation_axis_origin;
-            Eigen::Hyperplane<double, 3> laser_plane=self->ctx.sccalib.laser_plane;
-            double axis_radius = self->ctx.sccalib.rotation_axis_radius;
-            double stepper_gear_ratio = self->ctx.sccalib.stepper_gear_ratio;
+            Eigen::Vector3d rotation_axis_direction=self->ctx.scanner_calibration.rotation_axis_direction;
+            Eigen::Vector3d rotation_axis_origin=self->ctx.scanner_calibration.rotation_axis_origin;
+            Eigen::Hyperplane<double, 3> laser_plane=self->ctx.scanner_calibration.laser_plane;
+            double axis_radius = self->ctx.scanner_calibration.rotation_axis_radius;
+            double stepper_gear_ratio = self->ctx.scanner_calibration.stepper_gear_ratio;
             double rotation_resolution=self->ctx.scconfig.rotation_resolution;
             int nsteps = stepper_gear_ratio * 360 / rotation_resolution;
 
             std::vector<double> direction, source;
             std::vector<std::vector<double>> orbit_points, center_points;
             int npoints;
-            self->ctx.sccalib.load_points("axis_points.json", direction, source, orbit_points, center_points, npoints);
+            self->ctx.scanner_calibration.load_points("axis_points.json", direction, source, orbit_points, center_points, npoints);
 
             std::vector<double> axis_source_vector, axis_direction_vector;
-            axis_direction_vector.push_back(self->ctx.sccalib.rotation_axis_direction(0));
-            axis_direction_vector.push_back(self->ctx.sccalib.rotation_axis_direction(1));
-            axis_direction_vector.push_back(self->ctx.sccalib.rotation_axis_direction(2));
-            axis_source_vector.push_back(self->ctx.sccalib.rotation_axis_origin(0));
-            axis_source_vector.push_back(self->ctx.sccalib.rotation_axis_origin(1));
-            axis_source_vector.push_back(self->ctx.sccalib.rotation_axis_origin(2));
+            axis_direction_vector.push_back(self->ctx.scanner_calibration.rotation_axis_direction(0));
+            axis_direction_vector.push_back(self->ctx.scanner_calibration.rotation_axis_direction(1));
+            axis_direction_vector.push_back(self->ctx.scanner_calibration.rotation_axis_direction(2));
+            axis_source_vector.push_back(self->ctx.scanner_calibration.rotation_axis_origin(0));
+            axis_source_vector.push_back(self->ctx.scanner_calibration.rotation_axis_origin(1));
+            axis_source_vector.push_back(self->ctx.scanner_calibration.rotation_axis_origin(2));
 
             const int delay_rotation=2300;
 
-            auto pattern_size = self->ctx.sccalib.pattern_size;
-            int patternh = self->ctx.sccalib.pattern_size.height,
-                patternw = self->ctx.sccalib.pattern_size.width,
-                squareh = self->ctx.sccalib.square_size,
-                squarew = self->ctx.sccalib.square_size;
+            auto pattern_size = self->ctx.scanner_calibration.pattern_size;
+            int patternh = self->ctx.scanner_calibration.pattern_size.height,
+                patternw = self->ctx.scanner_calibration.pattern_size.width,
+                squareh = self->ctx.scanner_calibration.square_size,
+                squarew = self->ctx.scanner_calibration.square_size;
             
             while (running)
             {

@@ -8,8 +8,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <boost/thread.hpp>
-#include <scannercalib.hpp>
-#include <cameracalib.hpp>
+#include <scanner_calibration.hpp>
+#include <camera_calibration.hpp>
 #include <json.hpp>
 #include <models/polygon.hpp>
 #include <iostream>
@@ -842,8 +842,8 @@ namespace scanner
             std::cerr << "error opening camera" << std::endl;
         }
 
-        auto K = self->ctx.camera.calib.K;
-        auto D = self->ctx.camera.calib.D;
+        auto K = self->ctx.camera.camera_calibration.K;
+        auto D = self->ctx.camera.camera_calibration.D;
                     // std::cerr << K << std::endl;
                     // std::cerr << D << std::endl;
 
@@ -896,12 +896,12 @@ namespace scanner
         auto fncamera = [self, cap, vcap_mtx, K, D]()
         {
             std::vector<cv::Point3d> world_board_points;
-            auto pattern_size = self->ctx.sccalib.pattern_size;
+            auto pattern_size = self->ctx.scanner_calibration.pattern_size;
             int patternw = pattern_size.width, patternh = pattern_size.height;
-            double squarew = self->ctx.sccalib.square_size, squareh = self->ctx.sccalib.square_size;
-            int n_calibration_images = self->ctx.sccalib.n_calibration_images;
-            int steps_per_calibration_image = self->ctx.sccalib.steps_per_calibration_image;
-            double stepper_gear_ratio = self->ctx.sccalib.stepper_gear_ratio;
+            double squarew = self->ctx.scanner_calibration.square_size, squareh = self->ctx.scanner_calibration.square_size;
+            int n_calibration_images = self->ctx.scanner_calibration.n_calibration_images;
+            int steps_per_calibration_image = self->ctx.scanner_calibration.steps_per_calibration_image;
+            double stepper_gear_ratio = self->ctx.scanner_calibration.stepper_gear_ratio;
             double rotation_angle_per_step = ROTATION_RESOLUTION_FULLSTEP / stepper_gear_ratio;
             double rotation_angle_per_calibration_image = steps_per_calibration_image * rotation_angle_per_step;
             double total_rotation_angle = n_calibration_images * rotation_angle_per_calibration_image;
@@ -976,7 +976,7 @@ namespace scanner
 
                         if (success)
                         {
-                            self->ctx.sccalib.laser_plane = laser_plane;
+                            self->ctx.scanner_calibration.laser_plane = laser_plane;
                             Eigen::Matrix<double, 4, 1> n = laser_plane.coeffs();
 
                             // std::cout<<"svd:"<< "("<<n(3)<<"-XX*("<<n(0)<<")-YY*("<<n(1)<<"))/("<< n(2)<<")"<<std::endl;
@@ -1003,9 +1003,9 @@ namespace scanner
                             // Eigen::Matrix4d RT;
                             // bool ok=get_rigid_body_transform(camera_board_points,RT,direction,source);
                             // auto RT_rotation_axis=get_rotation_axis_transform(camera_board_points);
-                            self->ctx.sccalib.rotation_axis_direction = direction;
-                            self->ctx.sccalib.rotation_axis_origin = origin;
-                            self->ctx.sccalib.save("scanner_calib.json");
+                            self->ctx.scanner_calibration.rotation_axis_direction = direction;
+                            self->ctx.scanner_calibration.rotation_axis_origin = origin;
+                            self->ctx.scanner_calibration.save("scanner_calib.json");
 
                             std::vector<double> direction_vec, source_vec;
                             direction_vec.push_back(direction(0));
@@ -1034,7 +1034,7 @@ namespace scanner
                                 // }
                             }
 
-                            self->ctx.sccalib.save_points("axis_points.json", direction_vec, source_vec, orbit_points, center_points, npoints);
+                            self->ctx.scanner_calibration.save_points("axis_points.json", direction_vec, source_vec, orbit_points, center_points, npoints);
                         }
                     }
 

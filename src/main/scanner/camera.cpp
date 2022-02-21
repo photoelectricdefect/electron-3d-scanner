@@ -13,7 +13,6 @@
 
 namespace scanner {
     camera::camera() {
-        calibrated=calib.load("cameracalib.json");
     }
 
 void camera::clear_key_camera() {

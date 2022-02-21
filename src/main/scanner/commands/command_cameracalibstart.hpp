@@ -3,7 +3,7 @@
 
 #include <scanner.hpp>
 #include <commands/command.hpp>
-#include <cameracalib.hpp>
+#include <camera_calibration.hpp>
 
 namespace scanner {
     class command_cameracalibstart : public command {

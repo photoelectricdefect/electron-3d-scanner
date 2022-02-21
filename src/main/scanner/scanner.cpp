@@ -18,7 +18,7 @@
 #include <commands/command_microcontrollerstop.hpp>
 #include <commands/command_rotate.hpp>
 #include <commands/command_laserset.hpp>
-
+#include <filesystem>
 
 #include <boost/thread.hpp>
 #include <globals.hpp>
@@ -28,12 +28,39 @@ scanner sc;
 std::map<std::string, Napi::FunctionReference> ev_handlers;        
 
 scanner::scanner() {
-    //calibrated=calib.load("scannercalib.json");
+    init();
+    calibrated=true;
+    camera.calibrated=true;
+}
+
+void scanner::init() {
+    if(!std::filesystem::exists(CAMERA_CALIBRATION_FILE)) {
+        camera.camera_calibration.create_calibration_file(CAMERA_CALIBRATION_FILE);
+    }
+    if(!std::filesystem::exists(SCANNER_CALIBRATION_FILE)) {
+        scanner_calibration.create_calibration_file(SCANNER_CALIBRATION_FILE);
+    }
+
+    camera.camera_calibration.load(CAMERA_CALIBRATION_FILE);
+    scanner_calibration.load(SCANNER_CALIBRATION_FILE);
+
+    // std::cout<<"K_camera: "<<camera.camera_calibration.K<<std::endl;
+    // std::cout<<"D_camera: "<<camera.camera_calibration.D<<std::endl;
+    std::cout<<"square_camera: "<<camera.camera_calibration.square_size<<std::endl;
+    std::cout<<"pattern_camera: "<<camera.camera_calibration.pattern_size<<std::endl;
+    std::cout<<"ncaps_camera: "<<camera.camera_calibration.n_captures<<std::endl;
+
+    // std::cout<<"laser_plane_scanner: "<<scanner_calibration.laser_plane.coeffs()<<std::endl;
+    // std::cout<<"axis_direction_scanner: "<<scanner_calibration.rotation_axis_direction<<std::endl;
+    // std::cout<<"axis_origin_scanner: "<<scanner_calibration.rotation_axis_origin<<std::endl;
+    std::cout<<"square_size_scanner: "<<scanner_calibration.square_size<<std::endl;
+    std::cout<<"pattern_size_scanner: "<<scanner_calibration.pattern_size<<std::endl;
+    std::cout<<"rotation_axis_radius: "<<scanner_calibration.rotation_axis_radius<<std::endl;
+    std::cout<<"n_calibration_images: "<<scanner_calibration.n_calibration_images<<std::endl;
+    std::cout<<"stepper_gear_ratio: "<<scanner_calibration.stepper_gear_ratio<<std::endl;
+    std::cout<<"steps_per_calibration_image: "<<scanner_calibration.steps_per_calibration_image<<std::endl;
+    std::cout<<"n_captures: "<<scanner_calibration.n_captures<<std::endl;
     scconfig.load();
-    bool scanner_calibrated=sccalib.load("scanner_calib.json");
-    bool camera_calibrated=camera.calib.load("cameracalib.json");
-    calibrated=scanner_calibrated;
-    camera.calibrated=camera_calibrated;
 }
 
 void scanner::load_point_cloud() {}
@@ -251,7 +278,7 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
             }            
             else if(!prop.compare(PROP_CAMERA_CALIB_CAPTURES)) {
                 // boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
-                ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.calib.n_captures));
+                ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.camera_calibration.n_captures));
             }
             else if(!prop.compare(PROP_CAMERALIST)) {
                 auto cam_list=camera::get_camera_list();
@@ -269,9 +296,9 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }
             else if(!prop.compare(PROP_SCANNER_CALIBRATION_DATA)) {
-                auto plane_coeffs=sc.sccalib.laser_plane.coeffs();
-                auto axis_origin=sc.sccalib.rotation_axis_origin;
-                auto axis_direction=sc.sccalib.rotation_axis_direction;
+                auto plane_coeffs=sc.scanner_calibration.laser_plane.coeffs();
+                auto axis_origin=sc.scanner_calibration.rotation_axis_origin;
+                auto axis_direction=sc.scanner_calibration.rotation_axis_direction;
                 std::vector<double> laser_plane(plane_coeffs.data(), plane_coeffs.data() + plane_coeffs.rows() * plane_coeffs.cols()),
                 rotation_axis_direction(axis_direction.data(), axis_direction.data() + axis_direction.rows() * axis_direction.cols()),
                 rotation_axis_origin(axis_origin.data(), axis_origin.data() + axis_origin.rows() * axis_origin.cols());
@@ -283,9 +310,9 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }
             else if(!prop.compare(PROP_SCAN_RENDER_DATA)) {
-                auto rotation_axis_radius=sc.sccalib.rotation_axis_radius;
-                auto rotation_axis_origin=sc.sccalib.rotation_axis_origin;
-                auto rotation_axis_direction=sc.sccalib.rotation_axis_direction;
+                auto rotation_axis_radius=sc.scanner_calibration.rotation_axis_radius;
+                auto rotation_axis_origin=sc.scanner_calibration.rotation_axis_origin;
+                auto rotation_axis_direction=sc.scanner_calibration.rotation_axis_direction;
                 
                 Eigen::Matrix<double,3,4> T_object_frame=Eigen::Matrix<double,3,4>::Zero();
                 Eigen::Vector3d z_axis=(-rotation_axis_origin).dot(rotation_axis_direction)*rotation_axis_direction+rotation_axis_origin;                    
@@ -304,8 +331,7 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
                 Eigen::Vector3d camera_normal_object_frame=R_object_frame.transpose()*camera_normal_camera_frame;
                 camera_normal_object_frame.normalize();
 
-                std::vector<double> object_anchor(object_anchor_object_frame.data(), object_anchor_object_frame.data() + object_anchor_object_frame.rows() * object_anchor_object_frame.cols()),
-                camera_origin(camera_origin_object_frame.data(), camera_origin_object_frame.data() + camera_origin_object_frame.rows() * camera_origin_object_frame.cols()),
+                std::vector<double> camera_origin(camera_origin_object_frame.data(), camera_origin_object_frame.data() + camera_origin_object_frame.rows() * camera_origin_object_frame.cols()),
                 camera_normal(camera_normal_object_frame.data(), camera_normal_object_frame.data() + camera_normal_object_frame.rows() * camera_normal_object_frame.cols());
 
                 nlohmann::json j;

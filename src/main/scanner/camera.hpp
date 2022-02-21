@@ -1,6 +1,6 @@
 #include <json.hpp>
 #include <boost/thread.hpp>
-#include <cameracalib.hpp>
+#include <camera_calibration.hpp>
 #include <models/shared_queue.hpp>
 #include <string>
 #include <queue>
@@ -14,6 +14,8 @@
 
 #ifndef CAMERA_H_
 #define CAMERA_H_
+
+using camera_calibration_ = scanner::camera_calibration;
 
 namespace scanner {
     class camera {
@@ -33,7 +35,7 @@ namespace scanner {
             boost::thread thread_camera,thread_video;
             boost::mutex mtx_video_alive,mtx_calibrated,mtx_camera_keyq,mtx_camera_messageq;
             bool camera_alive, video_alive, calibrating, calibrated;
-            cameracalib calib;
+            camera_calibration_ camera_calibration;
             std::queue<int> camera_keyq;
             std::queue<nlohmann::json> camera_messageq;
 
