@@ -8,33 +8,34 @@ const scanner=remote.getGlobal('scanner');
 
 var index = () => {
     let video = document.getElementById("video");
-    let videoBtn = document.getElementById("video-btn");
-    let camCalibBtn = document.getElementById("camera-calibration-btn");
+    let displayVideoBtn = document.getElementById("display-video-btn");
+    let cameraCalibrationBtn = document.getElementById("camera-calibration-btn");
     let scannerCalibBtn = document.getElementById("scanner-calibration-btn");
     let rotateLeftBtn = document.getElementById("rotate-left-btn");
     let rotateRightBtn = document.getElementById("rotate-right-btn");
-    let cameraCalibratedText = document.getElementById("camera-calibrated-text");
-    let scannerCalibratedText = document.getElementById("scanner-calibrated-text");
-    let camCalibCaptures = document.getElementById("captures");
-    let camCalibCapturesMax = document.getElementById("max-captures");
-    let slideshow = document.getElementById("slideshow");
-    let videoSpinner = document.getElementById("video-spinner");
     let scannerCalibPlotButton = document.getElementById("scanner-calibration-plot-btn");
     let scannerCalibResetBtn = document.getElementById("scanner-calibration-reset-btn");
     let scanBtn = document.getElementById("scan-btn");
     let scanRenderBtn = document.getElementById("scan-render-btn");
-    let cameraSelect=document.getElementById("camera-select");
     let cameraListLoadBtn=document.getElementById("camera-list-load-btn");
     let laserBtn=document.getElementById("laser-btn");
+    
+    
+    let cameraCalibratedText = document.getElementById("camera-calibrated-text");
+    let scannerCalibratedText = document.getElementById("scanner-calibrated-text");
+    let cameraCalibCapturesText = document.getElementById("captures-text");
+    let cameraCalibCapturesMaxText = document.getElementById("max-captures-text");
+    let slideshow = document.getElementById("slideshow");
+    let videoSpinner = document.getElementById("video-spinner");
 
-    let videoalive = false;
-    let calibratingcamera = false;
-    let calibratingscanner = false;
+    let cameraSelect=document.getElementById("camera-select");
+
+    let displayVideo = false;
+    let calibratingCamera = false;
+    let calibratingScanner = false;
     let scanning = false;
     let cameracalibrated = false;
     let scannercalibrated = false;
-
-    let oldPlanes=[];
 
     let scannerCalibImages=[];
     let scannerCalibPoints=[];
@@ -48,12 +49,12 @@ var index = () => {
         colors:[[],[],[]]
     };
 
-    let cameraCalibCaptures=0;      
+    let nCameraCalibCaptures=0;      
 
 //     <div class="slideshow-div">
 //     <img src="/home/nejc/Pictures/lemon.jpg"></img>
 // </div>
-    // const createSlideshowImage=(id, base64)=> {
+    // const createSlideonImUpdate=(id, base64)=> {
     //     let div = document.createElement("div");
     //     div.id=id;
     //     div.classList.add("slideshow-div");
@@ -83,7 +84,7 @@ var index = () => {
     //https://stackoverflow.com/questions/9913765/rapidly-updating-image-with-data-uri-causes-caching-memory-leak
     const URL = window.URL || window.webkitURL;
     let frame;
-    const showImage = (base64) => {
+    const onImUpdate = (base64) => {
         if(frame) URL.revokeObjectURL(frame); 
         
         let blob = new Blob([base64], {type: "image/jpeg"});
@@ -92,64 +93,90 @@ var index = () => {
     };
 
 
-    const videoaliveChanged = (val) => {
+    const disableButtons = (value) => {
+        displayVideoBtn.disabled=value;
+        scannerCalibBtn.disabled=value;
+        cameraCalibrationBtn.disabled=value;
+        rotateLeftBtn.disabled=value;
+        rotateRightBtn.disabled=value;
+        scannerCalibPlotButton.disabled=value;
+        scannerCalibResetBtn.disabled=value;
+        scanBtn.disabled=value;
+        scanRenderBtn.disabled=value;
+        cameraListLoadBtn.disabled=value;
+        laserBtn.disabled=value;
+    };
+
+    const setDefaultButtonText = () => {
+        displayVideoBtn.textContent = "Start";
+        scannerCalibBtn.textContent = "Start";
+        cameraCalibrationBtn.textContent = "Start";
+        rotateLeftBtn.textContent = "Left";
+        rotateRightBtn.textContent = "Right";
+        scannerCalibPlotButton.textContent = "Open point plot";
+        scannerCalibResetBtn.textContent = "Clear";
+        scanBtn.textContent = "Start";
+        scanRenderBtn.textContent = "Open point plot";
+        cameraListLoadBtn.textContent = "Load";
+        laserBtn.textContent = "Toggle Laser";
+    };
+
+    const displayVideoChanged = (val) => {
         if(val) {
             videoSpinner.classList.add("invisible");
-            videoBtn.textContent = "Stop";
-            scanner.addListener(globals.events.imupdate, showImage);
+            displayVideoBtn.textContent = "Stop";
         }
         else {
-            videoBtn.textContent = "Start";
-            scanner.removeListener(globals.events.imupdate, showImage);
+            displayVideoBtn.textContent = "Start";
             video.setAttribute(
                 'src', ""
             );       
         }
 
-        videoalive = val;
+        displayVideo = val;
     };
 
-    const calibratingcameraChanged = (val) => {
-        cameraCalibCaptures=0;
-        camCalibCaptures.innerText = cameraCalibCaptures;     
+    const calibratingCameraChanged = (val) => {
+        setDefaultButtonText();
+        disableButtons(true);
+        cameraCalibrationBtn.disabled=false;
 
         if(val)  {
-            scanner.addListener(globals.events.cameracalibcaptured, camCalibCaptured);          
-            videoBtn.disabled=true;
-            scannerCalibBtn.disabled=true;
-            camCalibBtn.textContent = "Stop";
+            nCameraCalibCaptures=0;
+            cameraCalibCapturesText.parentElement.classList.remove("invisible");
+            cameraCalibCapturesText.innerText = nCameraCalibCaptures;         
+            cameraCalibrationBtn.textContent = "Stop";
         }
         else {
-            scanner.removeListener(globals.events.cameracalibcaptured, camCalibCaptured);          
-            videoBtn.disabled=false;
-            scannerCalibBtn.disabled=false;
-            camCalibBtn.textContent = "Start";
+            cameraCalibCapturesText.parentElement.classList.add("invisible");
+            cameraCalibrationBtn.textContent = "Start";
+            disableButtons(false);
         }
-
-        calibratingcamera = val;
+        
+        calibratingCamera = val;
     };
 
-    const calibratingscannerChanged = (val) => {
+    const calibratingScannerChanged = (val) => {
+        setDefaultButtonText();
+        disableButtons(true);
+        scannerCalibBtn.disabled=false;
+        scannerCalibPlotButton.disabled=false;
+
         if(val) {
-            scanner.addListener(globals.events.scannercalibdata, scannerCalibData);
             slideshow.classList.remove("invisible");
-            videoBtn.disabled=true;
-            camCalibBtn.disabled=true;
             scannerCalibBtn.textContent = "Stop";
         }
         else {
             if(scannerCalibPlotWin!=null) scannerCalibPlotWin.close();
 
-            scanner.removeListener(globals.events.scannercalibdata, scannerCalibData);
             scannerCalibImages=[];
             slideshow.innerHTML='';
             slideshow.classList.add("invisible");
-            videoBtn.disabled=false;
-            camCalibBtn.disabled=false;
             scannerCalibBtn.textContent = "Start";
+            disableButtons(false);
         }
 
-        calibratingscanner = val;
+        calibratingScanner = val;
     };
 
     const cameraCalibratedChanged = (val) => {
@@ -169,40 +196,43 @@ var index = () => {
     };
 
     const scanningChanged = (val) => {
-        console.log("reqrewrwer\n");
+        setDefaultButtonText();
+        disableButtons(true);
 
         // if(val) {
-        //     scanner.addListener(globals.events.scannercalibdata, scannerCalibData);
+        //     scanner.addListener(globals.events.scannercalibdata, onScannerCalibrationData);
         //     slideshow.classList.remove("invisible");
-        //     videoBtn.disabled=true;
-        //     camCalibBtn.disabled=true;
+        //     displayVideoBtn.disabled=true;
+        //     cameraCalibrationBtn.disabled=true;
         //     scannerCalibBtn.textContent = "Stop";
         // }
         // else {
         //     if(scannerCalibPlotWin!=null) scannerCalibPlotWin.close();
 
-        //     scanner.removeListener(globals.events.scannercalibdata, scannerCalibData);
+        //     scanner.removeListener(globals.events.scannercalibdata, onScannerCalibrationData);
         //     scannerCalibImages=[];
         //     slideshow.innerHTML='';
         //     slideshow.classList.add("invisible");
-        //     videoBtn.disabled=false;
-        //     camCalibBtn.disabled=false;
+        //     displayVideoBtn.disabled=false;
+        //     cameraCalibrationBtn.disabled=false;
         //     scannerCalibBtn.textContent = "Start";
         // }
 
 
         if(val) {
-            scanner.addListener(globals.events.scandata, scanData);
             scanBtn.textContent = "Stop";
+            scanBtn.disabled=false;
+            scanRenderBtn.disabled=false;    
         }
         else {
             scanBtn.textContent = "Start";
+            disableButtons(false);
         }
         
         scanning = val;
     };
 
-    const scanData = (msg) => {
+    const onScanData = (msg) => {
         msg=JSON.parse(msg);
         console.log(msg);
 
@@ -230,11 +260,11 @@ var index = () => {
     };
 
 
-    const camCalibCaptured = () => {
-        camCalibCaptures.innerText = ++cameraCalibCaptures;
+    const onCameraCalibrationCapture = () => {
+        cameraCalibCapturesText.innerText = ++cameraCalibCapturesText;
     };
 
-    const scannerCalibData = (msg,base64) => {
+    const onScannerCalibrationData = (msg,base64) => {
         msg=JSON.parse(msg);
         console.log(msg);
 
@@ -298,7 +328,7 @@ var index = () => {
         }
     };
 
-    const scannercalibratedChanged = (val) => {
+    const scannerCalibratedChanged = (val) => {
         if(val) {
             scannerCalibratedText.textContent="CALIBRATED";
             scannerCalibratedText.classList.add("badge-success");
@@ -326,114 +356,100 @@ var index = () => {
         });
     };
 
-    const stopvideo = () => {
+    const stopVideo = () => {
         videoSpinner.classList.add("invisible");
     
-        if(calibratingcamera || calibratingscanner || scanning) setprop(globals.properties.videoalive, false); 
-        else scanner.sendCommand(JSON.stringify({code:globals.commands.videostop})); 
+        if(calibratingCamera || calibratingScanner || scanning) 
+            return; 
+        
+        setProp(globals.properties.displayvideo,false);
     };
 
-    const startvideo = () => {
+    const startVideo = () => {
         videoSpinner.classList.remove("invisible");
 
-        if(calibratingcamera || calibratingscanner || scanning) {
-            setprop(globals.properties.videoalive, true);
-        }  
-        else scanner.sendCommand(JSON.stringify({code:globals.commands.videostart}));
+        if(calibratingCamera || calibratingScanner || scanning) 
+            return; 
+        
+        setProp(globals.properties.displayvideo,true);
     };
 
     const startcameracalib = () => {
         videoSpinner.classList.remove("invisible");
-
-        // ipcRenderer.send("forward-command", {code:globals.commands.cameracalibstart});
         scanner.sendCommand(JSON.stringify({code:globals.commands.cameracalibstart}));
-
     };
 
     const stopcameracalib = () => {
         videoSpinner.classList.add("invisible");
-
-        // ipcRenderer.send("forward-command", {code: globals.commands.cameracalibstop});
         scanner.sendCommand(JSON.stringify({code:globals.commands.cameracalibstop}));
     };
 
     const startScannerCalib = () => {
         videoSpinner.classList.remove("invisible");
-
-        // ipcRenderer.send("forward-command", {code:globals.commands.scannercalibstart});
         scanner.sendCommand(JSON.stringify({code:globals.commands.scannercalibstart}));
     };
 
     const stopScannerCalib = () => {
         videoSpinner.classList.add("invisible");
-
-        // ipcRenderer.send("forward-command", {code:globals.commands.scannercalibstop});
         scanner.sendCommand(JSON.stringify({code:globals.commands.scannercalibstop}));
     };
 
-    const rotateright = () => {
-        // ipcRenderer.send("forward-command", {code:globals.commands.rotate,direction:globals.rotation.clockwise});
+    const rotateRight = () => {
         scanner.sendCommand(JSON.stringify({code:globals.commands.rotate,direction:globals.rotation.clockwise}));
     };
 
-    const rotateleft = () => {
-        // ipcRenderer.send("forward-command", {code:globals.commands.rotate,direction:globals.rotation.counterclockwise});
+    const rotateLeft = () => {
         scanner.sendCommand(JSON.stringify({code:globals.commands.rotate,direction:globals.rotation.counterclockwise}));
     };
 
-    let laser_state=false;
+    let laserState=false;
 
     const toggleLaser = () => {
-        // ipcRenderer.send("forward-command", {code:globals.commands.rotate,direction:globals.rotation.clockwise});
-        laser_state=!laser_state;
-        scanner.sendCommand(JSON.stringify({code:globals.commands.togglelaser,state:laser_state}));
+        laserState=!laserState;
+        scanner.sendCommand(JSON.stringify({code:globals.commands.togglelaser,state:laserState}));
     };
 
     const scanStart = () => {
-        // ipcRenderer.send("forward-command", {code:globals.commands.startcameracalib});
-        //TODO: register
         scanner.sendCommand(JSON.stringify({code:globals.commands.scanstart}));
     };
 
     const scanStop = () => {
-        // ipcRenderer.send("forward-command", {code:globals.commands.stopcameracalib});
-        //TODO: register
         scanner.sendCommand(JSON.stringify({code:globals.commands.scanstop}));
     };
 
-    const setprop = (name, val) => {
-        // ipcRenderer.setProp("setprop", name, val);
-        scanner.setProp(JSON.stringify({code: globals.commands.setprop, prop: name, value: val}));
+    const setProp = (name, val) => {
+        scanner.setProp(JSON.stringify({prop: name, value: val}));
     };
 
     return {
         init: () => {      
             document.addEventListener("keyup", (e) => {
-                ipcRenderer.send("forward-keystroke", e.keyCode);
+                // ipcRenderer.send("forward-keystroke", e.keyCode);
                 //laserset();
+                scanner.postMessage(JSON.stringify({recipient:"thread_camera",type:"keyup",keycode:e.key}));
             });
             
-            videoBtn.addEventListener("click", (e) => {
-                if(videoalive) stopvideo();
-                else startvideo();
+            displayVideoBtn.addEventListener("click", (e) => {
+                if(displayVideo) stopVideo();
+                else startVideo();
             });
 
-            camCalibBtn.addEventListener("click", (e) => {
-                if(calibratingcamera) stopcameracalib();
+            cameraCalibrationBtn.addEventListener("click", (e) => {
+                if(calibratingCamera) stopcameracalib();
                 else startcameracalib();
             });
       
             scannerCalibBtn.addEventListener("click", (e) => {
-                if(calibratingscanner) stopScannerCalib();
+                if(calibratingScanner) stopScannerCalib();
                 else startScannerCalib();
             });
 
             rotateLeftBtn.addEventListener("click", (e) => {
-                rotateleft();
+                rotateLeft();
             });
 
             rotateRightBtn.addEventListener("click", (e) => {
-                rotateright();
+                rotateRight();
             });
 
             laserBtn.addEventListener("click",(e)=> {
@@ -475,12 +491,12 @@ var index = () => {
             scannerCalibResetBtn.addEventListener("click", (e) => {
                 if(scannerCalibPlotWin!=null&&!scannerCalibPlotWin.isDestroyed()) scannerCalibPlotWin.close();
 
-                scanner.postMessage(JSON.stringify({recipient:"camera_thread",data:"clear"}));
+                scanner.postMessage(JSON.stringify({recipient:"thread_camera",type:"clear_plane_points"}));
                 scannerCalibImages=[];
                 scannerCalibPoints=[];
                 scannerCalibPlane=[];
                 slideshow.innerHTML="";
-                setprop(globals.properties.scannercalibrated, false);
+                setProp(globals.properties.scannercalibrated, false);
             });
 
             scannerCalibPlotButton.addEventListener("click",(e)=> {
@@ -508,64 +524,38 @@ var index = () => {
 
                 /*if(globals.debug)*/ scannerCalibPlotWin.webContents.openDevTools();
             });
-
-            // debugCaptureBtn.addEventListener("click", (e) => {
-            //     openWin("debugCapture.html");
-
-            //     const fn = (base64) => {
-            //         modal.webContents.send('data', base64);
-            //     };
-
-            //     scanner.addListener(globals.events.debugcapture,fn);
-
-            //     modal.onbeforeunload = (e) => {
-            //         scanner.removeListener(globals.events.debugcapture, fn);
-            //     }
-
-            //     modal.webContents.openDevTools();
-            // });
-
-            // scanner.addListener(globals.events.propchanged, (msg) => {
-            //     msg = JSON.parse(msg);
           
-            //     if(msg.prop == globals.properties.videoalive) {
-            //       if(msg.value) {
-            //         scanner.addListener(globals.events.imupdate, forwardVideo);
-            //       } 
-            //       else {
-            //         scanner.removeListener(globals.events.imupdate, forwardVideo);
-            //       }
-            //     }
-          
-            //     index.webContents.send(globals.events.propchanged, msg);
-            //   });
-          
-            scanner.addListener(globals.events.scandata, scanData);
+            scanner.addListener(globals.events.scandata, onScanData);
 
             scanner.addListener(globals.events.propchanged, (msg) => {                
                 msg=JSON.parse(msg);
 
-                if(msg["prop"] == globals.properties.videoalive) 
-                    videoaliveChanged(msg["value"]);
+                if(msg["prop"] == globals.properties.displayvideo) 
+                    displayVideoChanged(msg["value"]);
                 else if(msg["prop"] == globals.properties.calibratingcamera) 
-                    calibratingcameraChanged(msg["value"]);
-                else if(msg["prop"] == globals.properties.calibratingscanner)
-                    calibratingscannerChanged(msg["value"]);
+                    calibratingCameraChanged(msg["value"]);
+                else if(msg["prop"] == globals.properties.calibratingScanner)
+                    calibratingScannerChanged(msg["value"]);
                 else if(msg["prop"] == globals.properties.cameracalibrated)
                     cameraCalibratedChanged(msg["value"]);                
                 else if(msg["prop"] == globals.properties.scannercalibrated)
-                    scannercalibratedChanged(msg["value"]);                                
+                    scannerCalibratedChanged(msg["value"]);                                
                 else if(msg["prop"] == globals.properties.scanning)
                     scanningChanged(msg["value"]);                
+            });
 
-                });
 
-            // scanner.addListener(globals.events.cameracalibcaptured, camCalibCaptured);          
-            // scanner.addListener(globals.events.scannerCalibData,scannerCalibData);          
+            scanner.addListener(globals.events.imupdate, onImUpdate);
+            scanner.addListener(globals.events.cameracalibcaptured, onCameraCalibrationCapture);          
+            scanner.addListener(globals.events.scannercalibdata, onScannerCalibrationData);
+            scanner.addListener(globals.events.scandata, onScanData);
+
+            // scanner.addListener(globals.events.cameracalibcaptured, onCameraCalibrationCapture);          
+            // scanner.addListener(globals.events.onScannerCalibrationData,onScannerCalibrationData);          
 
             // scanner.addListener(globals.events.cameracalibcaptured, () => {                
-            //     if(calibratingcamera) 
-            //         camCalibCaptured();
+            //     if(calibratingCamera) 
+            //         onCameraCalibrationCapture();
             // });          
 
             scanner.addListener(globals.events.error, (msg) => {
@@ -588,27 +578,26 @@ var index = () => {
                 });    
             }
 
-            scanner.sendCommand(JSON.stringify({code: globals.commands.iostart}));
-            scanner.sendCommand(JSON.stringify({code: globals.commands.controllerstart}));
+            scanner.addListener(globals.events.mainstart, ()=> {
+                scanner.getProp(globals.properties.cameracalibrated).then((response)=> {
+                    cameraCalibratedChanged(response);
+                });
+    
+                scanner.getProp(globals.properties.scannercalibrated).then((response)=> {
+                    // console.log("cal:"+response);
+                    scannerCalibratedChanged(response);
+                });    
 
-            scanner.getProp(globals.properties.cameracalibrated).then((response)=> {
-                cameraCalibratedChanged(response);
-            });
+                scanner.getProp(globals.properties.cameracalibcaptures).then((response)=> {
+                    cameraCalibCapturesMaxText.innerText=response;
+                });
+    
+                scanner.sendCommand(JSON.stringify({code: globals.commands.controllerstart}));
+                scanner.sendCommand(JSON.stringify({code: globals.commands.videostart}));    
+                loadCameraList();
+            });   
 
-            scanner.getProp(globals.properties.scannercalibrated).then((response)=> {
-                console.log("cal:"+response);
-                scannercalibratedChanged(response);
-            });
-
-            loadCameraList();
-
-            // scanner.getProp(globals.properties.scanstart).then((response)=> {
-            //     scannercalibratedChanged(response);
-            // });
-
-            scanner.getProp(globals.properties.cameracalibcaptures).then((response)=> {
-                camCalibCapturesMax.innerText=response;
-            });
+            scanner.sendCommand(JSON.stringify({code: globals.commands.mainstart}));
         }
     };
 };

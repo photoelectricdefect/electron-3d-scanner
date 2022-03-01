@@ -5,30 +5,6 @@
 namespace scanner {
     scanner_calibration::scanner_calibration() {};
 
-    // void to_json(nlohmann::json& j, const jscannercalib& data) {
-    //     j = nlohmann::json{ {"laser_plane", data.laser_plane},{ "rotation_axis_direction", data.rotation_axis_direction },{ "rotation_axis_source", data.rotation_axis_source }/*{ "RT_rotation_axis", data.RT_rotation_axis }*/};
-    // }
-
-    // void from_json(const nlohmann::json& j, jscannercalib& data) {
-    //     j.at("laser_plane").get_to(data.laser_plane);
-    //     j.at("rotation_axis_direction").get_to(data.rotation_axis_direction);
-    //     j.at("rotation_axis_source").get_to(data.rotation_axis_source);
-
-    //     // j.at("RT_rotation_axis").get_to(data.RT_rotation_axis);
-    // }
-
-    // void to_json(nlohmann::json& j, const jpoints& data) {
-    //     j = nlohmann::json{ {"direction", data.direction},{ "source", data.source },{ "orbit_points", data.orbit_points },{ "center_points", data.center_points },{ "npoints", data.npoints }};
-    // }
-
-    // void from_json(const nlohmann::json& j, jpoints& data) {
-    //     j.at("direction").get_to(data.direction);
-    //     j.at("source").get_to(data.source);
-    //     j.at("orbit_points").get_to(data.orbit_points);
-    //     j.at("center_points").get_to(data.center_points);
-    //     j.at("npoints").get_to(data.npoints);
-    // }
-
 Eigen::Matrix4d scanner_calibration::get_axis_rigid_body_transform() {
     Eigen::Vector3d y_axis=rotation_axis_direction;
     Eigen::Vector3d x_axis(y_axis(1),-y_axis(0),0);

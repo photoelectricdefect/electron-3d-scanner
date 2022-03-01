@@ -9,8 +9,8 @@ namespace scanner {
         private:
             int direction,angle;
         public:
-            command_rotate(scanner& ctx, int code, int direct);
-            void execute(std::shared_ptr<command> self) override;
+            command_rotate(scanner* ctx, int code, int direct);
+            void execute() override;
     };
 }
 

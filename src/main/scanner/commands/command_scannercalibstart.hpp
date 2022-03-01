@@ -7,8 +7,8 @@
 namespace scanner {
     class command_scannercalibstart : public command {
         public:
-            command_scannercalibstart(scanner& ctx, int code);
-            void execute(std::shared_ptr<command> self) override;
+            command_scannercalibstart(scanner* ctx, int code);
+            void execute() override;
     };
 }
 

@@ -7,8 +7,8 @@
 namespace scanner {
     class command_microcontrollerstop : public command {
         public:
-            command_microcontrollerstop(scanner& ctx, int code);
-            void execute(std::shared_ptr<command> self) override;
+            command_microcontrollerstop(scanner* ctx, int code);
+            void execute() override;
     };
 }
 

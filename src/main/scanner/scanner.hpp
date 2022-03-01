@@ -20,26 +20,38 @@ using scanner_calibration_ = scanner::scanner_calibration;
 namespace scanner {
     class scanner {
         public:            
-            boost::thread threadIO;
-            bool IOalive, scanning, calibrating, calibrated;
-            boost::mutex mtx_calibrated,mtx_scanning;
-            shared_queue<std::shared_ptr<command>> commandq;
-            camera_ camera;
-            microcontroller controller;
-            scanner_calibration_ scanner_calibration;
-            scanconfig scconfig;
+            boost::thread thread_main;
+            bool thread_main_alive, scanning, calibrating_scanner, scanner_calibrated;
+            boost::mutex mutex_calibrating_scanner,mutex_scanning,mutex_scanner_calibrated, mutex_thread_main_alive,
+            mtx_calibrated;
 
+            shared_queue<std::shared_ptr<command>> commandq;
+            
+            camera_ camera;
+            
+            microcontroller controller;
+            
+            scanner_calibration_ scanner_calibration;
+            
+            scanconfig scconfig;
 
             scanner();
             void init();
+            
+            bool get_flag_calibrating_scanner();
+            void set_flag_calibrating_scanner(bool value);
 
-            //move these to their own command objects
-            //--------
-            void load_point_cloud();
-            //--------
+            bool get_flag_scanner_calibrated();
+            void set_flag_scanner_calibrated(bool value);
+
+            bool get_flag_scanning();
+            void set_flag_scanning(bool value);
+
+            bool get_flag_thread_main_alive();
+            void set_flag_thread_main_alive(bool value);
 
             int wait_key(int timeout);
-            void invokeIO(std::shared_ptr<command> comm);
+            void thread_main_invoke(std::shared_ptr<command> comm);
             void stremit(std::string e, std::string msg, bool blocking);
             void imemit(std::string e, uint8_t* imbase64, size_t len, bool blocking);
             void imemit(std::string e, uint8_t* imbase64, std::string msg, size_t len, bool blocking);

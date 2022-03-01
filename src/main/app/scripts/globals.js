@@ -6,8 +6,8 @@ const events =  {
     videostart: "videostart",
     videostop: "videostop",
     error: "error",
-    iostart: "iostart",
-    iostop: "iostop",
+    mainstart: "mainstart",
+    mainstop: "mainstop",
     propchanged: "propchanged",
     cameracalibstart: "cameracalibstart",
     cameracalibstop: "cameracalibstop",
@@ -25,8 +25,8 @@ const events =  {
   };
   
   const commands =  {
-    iostart: 0,
-    iostop: 1,
+    mainstart: 0,
+    mainstop: 1,
     videostart: 2,
     videostop: 3,
     loadmodel: 5,
@@ -36,8 +36,8 @@ const events =  {
     scannercalibstop: 11,
     scanstart: 12,
     scanstop: 13,
-    setprop: 14,
-    getprop: 16,
+    // setprop: 14,
+    // getprop: 16,
     controllerstart:18,
     controllerstop:19,
     rotate:20,
@@ -45,7 +45,7 @@ const events =  {
   };
 
   const properties = {
-    videoalive: "videoalive",
+    displayvideo: "displayvideo",
     calibratingcamera: "calibratingcamera",
     calibratingscanner: "calibratingscanner",
     cameracalibrated: "cameracalibrated",

@@ -22,7 +22,8 @@ namespace scanner {
     T dequeue() {
         boost::unique_lock<boost::mutex> lock(mtx);
 
-        while(q.size() <= 0) condition.wait(lock);
+        while(q.size() <= 0) 
+            condition.wait(lock);
 
         T t = q.front();
         q.pop();

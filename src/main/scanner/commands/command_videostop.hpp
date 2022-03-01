@@ -7,8 +7,8 @@
 namespace scanner {
     class command_videostop : public command {
         public:
-            command_videostop(scanner& ctx, int code);
-            void execute(std::shared_ptr<command> self) override;
+            command_videostop(scanner* ctx, int code);
+            void execute() override;
     };
 }
 

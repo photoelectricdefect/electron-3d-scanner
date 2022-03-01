@@ -3,8 +3,8 @@
 #include <helpers/cv_helpers.hpp>
 #include <helpers/math_helpers.hpp>
 #include <commands/command.hpp>
-#include <commands/command_iostart.hpp>
-#include <commands/command_iostop.hpp>
+#include <commands/command_mainstart.hpp>
+#include <commands/command_mainstop.hpp>
 #include <commands/command_videostart.hpp>
 #include <commands/command_videostop.hpp>
 #include <commands/command_cameracalibstart.hpp>
@@ -29,8 +29,8 @@ std::map<std::string, Napi::FunctionReference> ev_handlers;
 
 scanner::scanner() {
     init();
-    calibrated=true;
-    camera.calibrated=true;
+    set_flag_scanner_calibrated(true);
+    camera.set_flag_camera_calibrated(true);
 }
 
 void scanner::init() {
@@ -63,13 +63,50 @@ void scanner::init() {
     scconfig.load();
 }
 
-void scanner::load_point_cloud() {}
+bool scanner::get_flag_calibrating_scanner() {
+    boost::unique_lock<boost::mutex> lock(mutex_calibrating_scanner);
+    return calibrating_scanner;
+}
 
-void scanner::invokeIO(std::shared_ptr<command> comm) {  
-    if(comm->code != COMM_IOSTART && !IOalive) return;
-    if(comm->code == COMM_IOSTART && IOalive) return;
+void scanner::set_flag_calibrating_scanner(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_calibrating_scanner);
+    calibrating_scanner=value;
+}
 
-    if(comm->code == COMM_IOSTART || comm->code == COMM_IOSTOP) comm->execute(comm);
+bool scanner::get_flag_scanning() {
+    boost::unique_lock<boost::mutex> lock(mutex_scanning);
+    return scanning;
+}
+
+void scanner::set_flag_scanning(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_scanning);
+    scanning=value;
+}
+
+bool scanner::get_flag_thread_main_alive() {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_main_alive);
+    return thread_main_alive;
+}
+
+void scanner::set_flag_thread_main_alive(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_main_alive);
+    thread_main_alive=value;
+}
+
+bool scanner::get_flag_scanner_calibrated()
+{
+    boost::unique_lock<boost::mutex> lock(mutex_scanner_calibrated);
+    return scanner_calibrated;
+}
+
+void scanner::set_flag_scanner_calibrated(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_scanner_calibrated);
+    scanner_calibrated=value;
+}
+
+
+void scanner::thread_main_invoke(std::shared_ptr<command> comm) {  
+    if(comm->code == COMM_MAINSTART || comm->code == COMM_MAINSTOP) comm->execute();
     
     commandq.enqueue(comm);
 }
@@ -91,54 +128,54 @@ void remove_listener(const Napi::CallbackInfo& info) {
 void send_command(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
     nlohmann::json j = nlohmann::json::parse(jstr);
-    int code=j["code"].get < int > ();
+    int code=j["code"].get<int>();
 
     switch(code) {
-        case COMM_IOSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_iostart(sc, code)));
+        case COMM_MAINSTART:
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_mainstart(&sc, code)));
             break;
-        case COMM_IOSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_iostop(sc, code)));        
+        case COMM_MAINSTOP:
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_mainstop(&sc, code)));        
             break;
         case COMM_VIDEOSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_videostart(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_videostart(&sc, code)));
             break;
         case COMM_VIDEOSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_videostop(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_videostop(&sc, code)));
             break;
         case COMM_CAMERACALIBSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_cameracalibstart(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstart(&sc, code)));
             break;
         case COMM_CAMERACALIBSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_cameracalibstop(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstop(&sc, code)));
             break;            
         case COMM_SCANNERCALIBSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_scannercalibstart(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_scannercalibstart(&sc, code)));
             break;
         case COMM_SCANNERCALIBSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_scannercalibstop(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_scannercalibstop(&sc, code)));
             break;        
         case COMM_SCANSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_scanstart(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_scanstart(&sc, code)));
             break; 
         case COMM_SCANSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_scanstop(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_scanstop(&sc, code)));
             break;
         case COMM_CONTROLLERSTART:
-            sc.invokeIO(std::shared_ptr<command>(new command_microcontrollerstart(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_microcontrollerstart(&sc, code)));
             break; 
         case COMM_CONTROLLERSTOP:
-            sc.invokeIO(std::shared_ptr<command>(new command_microcontrollerstop(sc, code)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_microcontrollerstop(&sc, code)));
             break;
         case COMM_TOGGLELASER: {
             int state = j["state"].get<int>();
-            sc.invokeIO(std::shared_ptr<command>(new command_laserset(sc, code, state)));
-        }
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_laserset(&sc, code, state)));
+            }
             break;
         case COMM_ROTATE: {
             int direction = j["direction"].get<int>();
-            sc.invokeIO(std::shared_ptr<command>(new command_rotate(sc, code, direction)));
-        }
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_rotate(&sc, code, direction)));
+            }
             break;
     }
 }
@@ -149,27 +186,27 @@ void post_message(const Napi::CallbackInfo& info) {
     auto recipient = j["recipient"].get<std::string>();
 
     auto comm = [recipient,j]() {
-        if(!recipient.compare("camera_thread")) {
-            sc.camera.post_message_camera(j);
+        if(!recipient.compare("thread_camera")) {
+            sc.camera.set_message_thread_camera(j);
         }
     };
 
-    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, -1, comm)));
+    sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, -1, comm)));
 }
 
 
-void keyboard_input(const Napi::CallbackInfo& info) {
-    std::string jstr = info[0].As<Napi::String>().Utf8Value();
-    nlohmann::json j = nlohmann::json::parse(jstr);
-    // int recipient = j["keycode"].get<int>();
-    int keycode = j["keycode"].get<int>();
+// void keyboard_input(const Napi::CallbackInfo& info) {
+//     std::string jstr = info[0].As<Napi::String>().Utf8Value();
+//     nlohmann::json j = nlohmann::json::parse(jstr);
+//     // int recipient = j["keycode"].get<int>();
+//     int keycode = j["keycode"].get<int>();
 
-    auto comm = [keycode]() {
-        sc.camera.set_key_camera(keycode);
-    };
+//     auto comm = [keycode]() {
+//         sc.camera.set_key_camera(keycode);
+//     };
 
-    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, -1, comm)));
-}
+//     sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, -1, comm)));
+// }
 
 Napi::ThreadSafeFunction stremitTSFN;
 void scanner::stremit(std::string e, std::string msg, bool blocking) {    
@@ -207,48 +244,49 @@ void scanner::imemit(std::string e, uint8_t* imbase64, std::string msg, size_t l
 }
 
 
-void setprop(const Napi::CallbackInfo& info) {
+void set_prop(const Napi::CallbackInfo& info) {
     std::string jstr = info[0].As<Napi::String>().Utf8Value();
     nlohmann::json j = nlohmann::json::parse(jstr);
-    int code = j["code"].get<int>();
+    // int code = j["code"].get<int>();
     std::string prop = j["prop"].get<std::string>();
 
-    if(!prop.compare(PROP_VIDEOALIVE)) {
+    if(!prop.compare(PROP_DISPLAYVIDEO)) {
             bool val = j["value"].get<bool>();
 
             auto comm = [val]() {
-                boost::unique_lock<boost::mutex> lock(sc.camera.mtx_video_alive);
-                sc.camera.video_alive = val;
-                lock.unlock();
-                nlohmann::json j;
-                j["prop"] = PROP_VIDEOALIVE;
-                j["value"] = val;
-                sc.stremit(EV_PROPCHANGED, j.dump(), true);    
+                if(!sc.camera.get_flag_calibrating_camera()&&
+                !sc.get_flag_calibrating_scanner()&&
+                !sc.get_flag_scanning()) {
+                    sc.camera.set_flag_display_video(val);
+                    nlohmann::json j;
+                    j["prop"] = PROP_DISPLAYVIDEO;
+                    j["value"] = val;
+                    sc.stremit(EV_PROPCHANGED, j.dump(), true);    
+                }
             };
 
-            sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)));
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_SETPROP, comm)));
     }
-    else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
-            bool val = j["value"].get<bool>();
+    // else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
+    //         bool val = j["value"].get<bool>();
 
-            auto comm = [val]() {
-                boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
-                sc.calibrated = val;
-                lock.unlock();
-                nlohmann::json j;
-                j["prop"] = PROP_SCANNERCALIBRATED;
-                j["value"] = val;
-                sc.stremit(EV_PROPCHANGED, j.dump(), true);    
-            };
+    //         auto comm = [val]() {
+    //             boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
+    //             sc.calibrated = val;
+    //             lock.unlock();
+    //             nlohmann::json j;
+    //             j["prop"] = PROP_SCANNERCALIBRATED;
+    //             j["value"] = val;
+    //             sc.stremit(EV_PROPCHANGED, j.dump(), true);    
+    //         };
 
-            sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, code, comm)));
-    } 
+    //         sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, code, comm)));
+    // } 
 }
 
-Napi::Value getprop(const Napi::CallbackInfo& info) {
+Napi::Value get_prop(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     std::string prop = info[0].As<Napi::String>().Utf8Value();
-
 
     struct tsfn_ctx {
         tsfn_ctx(Napi::Env env) : deferred(Napi::Promise::Deferred::New(env)) {};
@@ -260,24 +298,23 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
     std::shared_ptr<tsfn_ctx> ctx(new tsfn_ctx(env));
     ctx->tsfn = Napi::ThreadSafeFunction::New(env,  
     Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), 
-    "getprop", 0, 1); 
+    "get_prop", 0, 1); 
+
 
     auto comm = [ctx, prop]() {
-        auto getprop = [ctx, prop](Napi::Env env, Napi::Function jscb) {
-            if(!prop.compare(PROP_VIDEOALIVE)) {
-                boost::unique_lock<boost::mutex> lock(sc.camera.mtx_video_alive);
-                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.video_alive));
+        std::cout<<prop<<std::endl;
+
+        auto get_prop = [ctx, prop](Napi::Env env, Napi::Function jscb) {
+            if(!prop.compare(PROP_DISPLAYVIDEO)) {
+                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.get_flag_display_video()));
             }            
             else if(!prop.compare(PROP_CAMERACALIBRATED)) {
-                boost::unique_lock<boost::mutex> lock(sc.camera.mtx_calibrated);
-                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.calibrated));
+                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.get_flag_camera_calibrated()));
             }            
             else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
-                boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
-                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.calibrated));
+                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.get_flag_scanner_calibrated()));
             }            
             else if(!prop.compare(PROP_CAMERA_CALIB_CAPTURES)) {
-                // boost::unique_lock<boost::mutex> lock(sc.mtx_calibrated);
                 ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.camera_calibration.n_captures));
             }
             else if(!prop.compare(PROP_CAMERALIST)) {
@@ -293,6 +330,8 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
 
                 nlohmann::json j;
                 j["data"] = jarray;
+                                std::cout<<j.dump()<<std::endl;
+
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }
             else if(!prop.compare(PROP_SCANNER_CALIBRATION_DATA)) {
@@ -342,11 +381,11 @@ Napi::Value getprop(const Napi::CallbackInfo& info) {
             }            
         };
 
-        ctx->tsfn.NonBlockingCall(getprop);
+        ctx->tsfn.NonBlockingCall(get_prop);
         ctx->tsfn.Release();
     };
 
-    sc.invokeIO(std::shared_ptr<command>(new command_lambda<decltype(comm)>(sc, COMM_GETPROP, comm)));
+    sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_GETPROP, comm)));
 
     return ctx->deferred.Promise();
 }
@@ -358,12 +397,10 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
                     Napi::Function::New(env, remove_listener));
     exports.Set(Napi::String::New(env, "sendCommand"), 
                     Napi::Function::New(env, send_command));
-    exports.Set(Napi::String::New(env, "keyboardInput"), 
-                    Napi::Function::New(env, keyboard_input));
     exports.Set(Napi::String::New(env, "setProp"), 
-                    Napi::Function::New(env, setprop));
+                    Napi::Function::New(env, set_prop));
     exports.Set(Napi::String::New(env, "getProp"), 
-                    Napi::Function::New(env, getprop));
+                    Napi::Function::New(env, get_prop));
     exports.Set(Napi::String::New(env, "postMessage"), 
                     Napi::Function::New(env, post_message));
     stremitTSFN = Napi::ThreadSafeFunction::New(env,  Napi::Function::New(env, [](const Napi::CallbackInfo& info){ return info.Env().Undefined(); } ), "stremit", 0, 1);

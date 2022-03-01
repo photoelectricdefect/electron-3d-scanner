@@ -8,11 +8,11 @@
 
 namespace scanner {
     template<typename F>
-    class command_setprop : public command {
+    class command_getprop : public command {
         public:
             F& fn;
-            command_setprop(F& _fn, scanner& ctx, int code) : command(ctx, code), json(_json) {}
-            void execute(std::shared_ptr<command> self) override {
+            command_getprop(F& _fn, scanner* ctx, int code) : command(ctx, code), json(_json) {}
+            void execute() override {
                 fn();
             }
     };

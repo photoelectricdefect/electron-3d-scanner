@@ -7,8 +7,8 @@
 namespace scanner {
     class command_cameracalibstop : public command {
         public:
-            command_cameracalibstop(scanner& ctx, int code);
-            void execute(std::shared_ptr<command> self) override;
+            command_cameracalibstop(scanner* ctx, int code);
+            void execute() override;
     };
 }
 

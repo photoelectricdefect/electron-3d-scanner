@@ -32,20 +32,45 @@ namespace scanner {
                 std::string name;                
             } camera_info;
 
-            boost::thread thread_camera,thread_video;
-            boost::mutex mtx_video_alive,mtx_calibrated,mtx_camera_keyq,mtx_camera_messageq;
-            bool camera_alive, video_alive, calibrating, calibrated;
-            camera_calibration_ camera_calibration;
-            std::queue<int> camera_keyq;
-            std::queue<nlohmann::json> camera_messageq;
+            boost::thread thread_camera, thread_video;
+            
+            boost::mutex mutex_thread_video_alive, mutex_display_video,
+                        mutex_video_capture, mutex_thread_camera_alive,
+                        mutex_calibrating_camera,mutex_message_thread_camera,
+                        mutex_camera_calibrated;
+            
+            boost::condition_variable condition_display_video, condition_message_thread_camera;
 
+            bool calibrating_camera, camera_calibrated, thread_video_alive, display_video, thread_camera_alive;
+
+            camera_calibration_ camera_calibration;
+            
+            cv::VideoCapture video_capture;
+
+            nlohmann::json* message_thread_camera;
+            
             camera();
-            void clear_key_camera();
-            void set_key_camera(int keycode);
-            int get_key_camera();
-            void clear_messageq_camera();
-            void post_message_camera(nlohmann::json msg);
-            bool recieve_message_camera(nlohmann::json& msg);
+
+            bool get_flag_display_video();
+            void set_flag_display_video(bool value);
+
+            bool get_flag_thread_video_alive();
+            void set_flag_thread_video_alive(bool value);
+
+            bool get_flag_thread_camera_alive();
+            void set_flag_thread_camera_alive(bool value);
+
+            bool get_flag_calibrating_camera();
+            void set_flag_calibrating_camera(bool value);
+
+            bool get_flag_camera_calibrated();
+            void set_flag_camera_calibrated(bool value);
+
+            void clear_message_thread_camera();
+            void set_message_thread_camera(const nlohmann::json& message);
+            void get_message_thread_camera(nlohmann::json& message);
+            void try_get_message_thread_camera(nlohmann::json* message);
+
             static std::vector<camera_info> get_camera_list();
 
             #ifdef __linux__ 

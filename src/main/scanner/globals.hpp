@@ -21,18 +21,18 @@ namespace scanner
 
        const std::string EV_ERROR = "error",
                          EV_STATUS = "status",
+                         EV_PROPCHANGED = "propchanged",
                          EV_IMUPDATE = "imupdate",
                          EV_VIDEOSTART = "videostart",
                          EV_VIDEOSTOP = "videostop",
-                         EV_IOSTART = "iostart",
-                         EV_IOSTOP = "iostop",
+                         EV_MAINSTART = "mainstart",
+                         EV_MAINSTOP = "mainstop",
                          EV_CAMERACALIBSTART = "cameracalibstart",
                          EV_CAMERACALIBSTOP = "cameracalibstop",
                          EV_SCANNERCALIBSTART = "scannercalibstart",
                          EV_SCANNERCALIBSTOP = "scannercalibstop",
                          EV_SCANNERCALIBDATA = "scannercalibdata",
                          EV_SCANDATA = "scandata",
-                         EV_PROPCHANGED = "propchanged",
                          EV_SCANSTART = "scanstart",
                          EV_SCANSTOP = "scanstop",
                          EV_CONTROLLERSTART = "controllerstart",
@@ -42,7 +42,7 @@ namespace scanner
                          EV_CAMERACALIBCAPTURED = "cameracalibcaptured",
                          EV_DEBUGCAPTURE = "debugcapture";
 
-       const std::string PROP_VIDEOALIVE = "videoalive",
+       const std::string PROP_DISPLAYVIDEO = "displayvideo",
                         PROP_CALIBRATINGCAMERA = "calibratingcamera",
                         PROP_CALIBRATINGSCANNER = "calibratingscanner",
                         PROP_SCANNING = "scanning",
@@ -59,8 +59,8 @@ namespace scanner
                  KEYCODE_S = 83;
 
        const int
-           COMM_IOSTART = 0,
-           COMM_IOSTOP = 1,
+           COMM_MAINSTART = 0,
+           COMM_MAINSTOP = 1,
            COMM_VIDEOSTART = 2,
            COMM_VIDEOSTOP = 3,
            COMM_SCANSTART = 12,

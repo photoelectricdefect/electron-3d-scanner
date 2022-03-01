@@ -10,10 +10,10 @@ namespace scanner {
 
     class command {
         public:
-            scanner& ctx;
+            scanner* ctx;
             int code;
-            command(scanner& _ctx, int _code);
-            virtual void execute(std::shared_ptr<command> self);
+            command(scanner* ctx_, int code_);
+            virtual void execute();
     };
 }
 

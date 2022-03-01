@@ -9,8 +9,8 @@ namespace scanner {
         private:
             int state;
         public:
-            command_laserset(scanner& ctx, int code, int state_);
-            void execute(std::shared_ptr<command> self) override;
+            command_laserset(scanner* ctx, int code, int state_);
+            void execute() override;
     };
 }
 

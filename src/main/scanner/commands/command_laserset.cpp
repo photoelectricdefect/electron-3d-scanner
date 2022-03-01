@@ -3,26 +3,23 @@
 #include <microcontroller.hpp>
 
 namespace scanner {
-command_laserset::command_laserset(scanner& ctx, int code, int state_)
-    : command(ctx, code)
-    , state(state_)
-{
-}
+command_laserset::command_laserset(scanner* ctx, int code, int state_)
+    : command(ctx, code), state(state_) {}
 
-void command_laserset::execute(std::shared_ptr<command> self)
+void command_laserset::execute()
 {
-    auto comm = [ self, state_=state ]()
+    auto comm = [ctx=ctx, state=state ]()
     {
         bool err = false;
         nlohmann::json response;
-        self->ctx.controller.set_laser(state_, 10, response, 2000, err);
+        ctx->controller.set_laser(state, 10, response, 2000, err);
 
         if (!err)
-            self->ctx.stremit(EV_LASERSET, "", true);
+            ctx->stremit(EV_LASERSET, "", true);
         else
-            self->ctx.stremit(EV_ERROR, "", true);
+            ctx->stremit(EV_ERROR, "", true);
     };
 
-    ctx.controller.invoke_controller(std::shared_ptr<command>(new command_lambda<decltype(comm)>(self->ctx, -1, comm)));
+    ctx->controller.invoke_controller(std::shared_ptr<command>(new command_lambda<decltype(comm)>(ctx, -1, comm)));
 }
 }

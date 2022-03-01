@@ -7,17 +7,6 @@
 
 namespace scanner
 {
-    // struct jscannercalib
-    // {
-    //     std::vector<double> laser_plane;
-    //     std::vector<double> rotation_axis_direction;
-    //     std::vector<double> rotation_axis_source;
-    //     // std::vector<double> RT_rotation_axis;
-    // };
-
-    // void to_json(nlohmann::json &j, const jscannercalib &data);
-    // void from_json(const nlohmann::json &j, jscannercalib &data);
-
     struct jpoints
     {
         std::vector<double> direction;
@@ -34,17 +23,6 @@ namespace scanner
     class scanner_calibration
     {
     public:
-        // cv::Size pattern_size = cv::Size(9, 6);
-        // double square_size = 23;
-        // double rotation_axis_radius = 80;
-        // Eigen::Hyperplane<double, 3> laser_plane;
-        // Eigen::Vector3d rotation_axis_direction;
-        // Eigen::Vector3d rotation_axis_origin;
-        // int n_calibration_images = 20;
-        // double stepper_gear_ratio = 56. / 36;
-        // int steps_per_calibration_image = 2;
-        // int n_captures = 20;
-
         cv::Size pattern_size;
         double square_size;
         double rotation_axis_radius;

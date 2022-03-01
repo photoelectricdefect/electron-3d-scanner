@@ -14,8 +14,9 @@ namespace scanner
     class microcontroller
     {
     public:
+        boost::mutex mutex_thread_controller;
         boost::thread thread_controller;
-        bool controller_alive;
+        bool thread_controller_alive;
         shared_queue<std::shared_ptr<command>> commandq;
         TimeoutSerial serial_port;
         std::string devname = "/dev/ttyACM0";
@@ -31,6 +32,10 @@ namespace scanner
         microcontroller();
         microcontroller(std::string devname_, unsigned int baud_);
         void invoke_controller(std::shared_ptr<command> comm);
+        bool get_flag_thread_controller_alive();
+        void set_flag_thread_controller_alive(bool value);
+
+
         void serial_open();
         void serial_close();
         void serial_write_string(std::string str);

@@ -21,7 +21,7 @@
 
 namespace scanner
 {
-    command_scannercalibstart::command_scannercalibstart(scanner &ctx, int code)
+    command_scannercalibstart::command_scannercalibstart(scanner *ctx, int code)
         : command(ctx, code){};
 
     typedef struct circle
@@ -458,7 +458,7 @@ namespace scanner
         return ROI;
     }
 
-    bool find_laser_line(std::shared_ptr<command> self, cv::Mat &imlaser, cv::Mat &imnolaser, const std::vector<Eigen::Vector2d> &image_board_points, cv::Size pattern_size, line_segment &laser_line)
+    bool find_laser_line(const scanner* ctx, cv::Mat &imlaser, cv::Mat &imnolaser, const std::vector<Eigen::Vector2d> &image_board_points, cv::Size pattern_size, line_segment &laser_line)
     {
         cv::Mat diff, mask_blurred, mask, denoised, blurred, cross = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3)), ellipse = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3));
         cv::Mat base_colors[3], R;
@@ -594,24 +594,24 @@ namespace scanner
         mask = cv::norm(mean_black) >= cv::norm(mean_white) ? mask_black : mask_white;
 
         // auto imupdate = [self,&mask,&denoised,&black_squares,&white_squares]() {
-        //     boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_video_alive);
+        //     boost::unique_lock<boost::mutex> lock(ctx->camera.mtx_video_alive);
 
-        //     if (self->ctx.camera.video_alive) {
+        //     if (ctx->camera.video_alive) {
         //         uint8_t* data0;
         //         auto len0 = cv_helpers::mat2buffer(mask, data0);
-        //         self->ctx.imemit(EV_DEBUGCAPTURE, data0, len0, true);
+        //         ctx->imemit(EV_DEBUGCAPTURE, data0, len0, true);
 
         //         uint8_t* data1;
         //         auto len1=cv_helpers::mat2buffer(denoised, data1);
-        //         self->ctx.imemit(EV_DEBUGCAPTURE, data1, len1, true);
+        //         ctx->imemit(EV_DEBUGCAPTURE, data1, len1, true);
 
         //         uint8_t* data2;
         //         auto len2=cv_helpers::mat2buffer(black_squares, data2);
-        //         self->ctx.imemit(EV_DEBUGCAPTURE, data2, len2, true);
+        //         ctx->imemit(EV_DEBUGCAPTURE, data2, len2, true);
 
         //         uint8_t* data3;
         //         auto len3=cv_helpers::mat2buffer(white_squares, data3);
-        //         self->ctx.imemit(EV_DEBUGCAPTURE, data3, len3, true);
+        //         ctx->imemit(EV_DEBUGCAPTURE, data3, len3, true);
         //     }
         // };
 
@@ -819,89 +819,23 @@ namespace scanner
     }
 
     // TODO: Think about whether automatic calibration is necessary instead of manual by capturing images by user
-    void command_scannercalibstart::execute(std::shared_ptr<command> self)
+    void command_scannercalibstart::execute()
     {
-        ctx.calibrating = true;
-        ctx.camera.video_alive = true;
-        ctx.camera.camera_alive = true;
-        std::shared_ptr<boost::mutex> vcap_mtx(new boost::mutex);
-        std::shared_ptr<cv::VideoCapture> cap(new cv::VideoCapture);
-        int videoid = camera::get_videoid("USB 2.0 Camera: USB Camera");
+        ctx->camera.set_flag_display_video(true);        
+        ctx->set_flag_calibrating_scanner(true);
+        ctx->camera.set_flag_thread_camera_alive(true);
+        auto K = ctx->camera.camera_calibration.K;
+        auto D = ctx->camera.camera_calibration.D;
 
-        if (videoid == -1)
-        {
-            std::cerr << "could not detect USB camera" << std::endl;
-        }
-
-        cap->open(videoid);
-        cap->set(cv::CAP_PROP_FRAME_WIDTH, 1600);
-        cap->set(cv::CAP_PROP_FRAME_HEIGHT, 1200);
-
-        if (!cap->isOpened())
-        {
-            std::cerr << "error opening camera" << std::endl;
-        }
-
-        auto K = self->ctx.camera.camera_calibration.K;
-        auto D = self->ctx.camera.camera_calibration.D;
-                    // std::cerr << K << std::endl;
-                    // std::cerr << D << std::endl;
-
-        auto fnvideo = [self, cap, vcap_mtx, K, D]()
-        {
-            cv::Mat frame, undistorted;
-            bool running = true;
-
-            // std::cout<<"KCAM0:"<<self->ctx.camera.calib.K<<std::endl;
-            // std::cout<<"DCAM0:"<<self->ctx.camera.calib.D<<std::endl;
-
-            while (running)
-            {
-                try
-                {
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
-                    boost::unique_lock<boost::mutex> lock(*vcap_mtx);
-                    cap->read(frame);
-                    lock.unlock();
-
-                    if (frame.empty())
-                    {
-                        std::cerr << "empty frame grabbed" << std::endl;
-                        continue;
-                    }
-
-                    cv::undistort(frame, undistorted, K, D);
-
-                    auto imupdate = [self, &undistorted]()
-                    {
-                        boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_video_alive);
-
-                        if (self->ctx.camera.video_alive)
-                        {
-                            uint8_t *data;
-                            auto len = cv_helpers::mat2buffer(undistorted, data);
-                            self->ctx.imemit(EV_IMUPDATE, data, len, true);
-                        }
-                    };
-
-                    imupdate();
-                }
-                catch (boost::thread_interrupted &)
-                {
-                    running = false;
-                }
-            }
-        };
-
-        auto fncamera = [self, cap, vcap_mtx, K, D]()
+        auto fncamera = [ctx=ctx,K,D]()
         {
             std::vector<cv::Point3d> world_board_points;
-            auto pattern_size = self->ctx.scanner_calibration.pattern_size;
+            auto pattern_size = ctx->scanner_calibration.pattern_size;
             int patternw = pattern_size.width, patternh = pattern_size.height;
-            double squarew = self->ctx.scanner_calibration.square_size, squareh = self->ctx.scanner_calibration.square_size;
-            int n_calibration_images = self->ctx.scanner_calibration.n_calibration_images;
-            int steps_per_calibration_image = self->ctx.scanner_calibration.steps_per_calibration_image;
-            double stepper_gear_ratio = self->ctx.scanner_calibration.stepper_gear_ratio;
+            double squarew = ctx->scanner_calibration.square_size, squareh = ctx->scanner_calibration.square_size;
+            int n_calibration_images = ctx->scanner_calibration.n_calibration_images;
+            int steps_per_calibration_image = ctx->scanner_calibration.steps_per_calibration_image;
+            double stepper_gear_ratio = ctx->scanner_calibration.stepper_gear_ratio;
             double rotation_angle_per_step = ROTATION_RESOLUTION_FULLSTEP / stepper_gear_ratio;
             double rotation_angle_per_calibration_image = steps_per_calibration_image * rotation_angle_per_step;
             double total_rotation_angle = n_calibration_images * rotation_angle_per_calibration_image;
@@ -910,7 +844,7 @@ namespace scanner
             double start_angle_steps = start_rotation_angle / rotation_angle_per_step;
             int delay_initial_rotation = 15000;
             int delay_calibration_image_rotation = 8000;
-            std::string rotation_direction=self->ctx.scconfig.rotation_direction;
+            std::string rotation_direction=ctx->scconfig.rotation_direction;
 
             const int max_pose_estimation_attempts = 3;
             const int pose_history_length = 5;
@@ -936,374 +870,363 @@ namespace scanner
 
             std::vector<std::vector<Eigen::Vector3d>> camera_board_points(world_board_points.size());
             std::vector<std::pair<int, Eigen::Vector3d>> camera_plane_points_by_id;
-            bool running = true;
-
-            self->ctx.camera.clear_key_camera();
-            self->ctx.camera.clear_messageq_camera();
             int n_current_images = 0;
 
-            while (running)
+            while (ctx->camera.get_flag_thread_camera_alive())
             {
                 try
                 {
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
-                    int keycode = self->ctx.camera.get_key_camera();
-                    nlohmann::json msg, response;
-                    bool recieved = self->ctx.camera.recieve_message_camera(msg);
+                    ctx->camera.clear_message_thread_camera();
+                    nlohmann::json message;
+                    ctx->camera.get_message_thread_camera(message);
+                    std::string type=message["type"];
+                   
+                    if(!type.compare("keyup")) {
+                        int keycode =message["keycode"].get<int>();
+                        
+                        if (keycode == KEYCODE_C)
+                        {
+                            Eigen::Hyperplane<double, 3> laser_plane(Eigen::Vector3d(1, 1, 1), 1);
+                            std::vector<Eigen::Vector3d> camera_plane_points(camera_plane_points_by_id.size());
 
-                    if (recieved)
+                            for (int i = 0; i < camera_plane_points_by_id.size(); i++)
+                            {
+                                camera_plane_points[i] = camera_plane_points_by_id[i].second;
+                            }
+
+                            Eigen::Vector3d direction, origin;
+                            bool success = calibrate(camera_plane_points, camera_board_points, boundaries_lower, boundaries_upper, laser_plane, direction, origin);
+
+                            if (success)
+                            {
+                                ctx->scanner_calibration.laser_plane = laser_plane;
+                                Eigen::Matrix<double, 4, 1> n = laser_plane.coeffs();
+                                ctx->set_flag_scanner_calibrated(true);
+                                nlohmann::json j;
+                                j["prop"] = PROP_SCANNERCALIBRATED;
+                                j["value"] = true;
+                                ctx->stremit(EV_PROPCHANGED, j.dump(), true);
+                                std::vector<double> nvec;
+                                nvec.push_back(n(0)), nvec.push_back(n(1)), nvec.push_back(n(2)), nvec.push_back(n(3));
+                                j.clear();
+                                j["type"] = "plane";
+                                j["n"] = nvec;
+                                // j["centroid"] = centroid;
+                                ctx->stremit(EV_SCANNERCALIBDATA, j.dump(), true);
+
+                                std::vector<std::vector<double>> center_points;
+                                Eigen::Vector3d a, b;
+                                get_rotation_axis(camera_board_points, a, b, center_points);
+
+                                // Eigen::Matrix4d RT;
+                                // bool ok=get_rigid_body_transform(camera_board_points,RT,direction,source);
+                                // auto RT_rotation_axis=get_rotation_axis_transform(camera_board_points);
+                                ctx->scanner_calibration.rotation_axis_direction = direction;
+                                ctx->scanner_calibration.rotation_axis_origin = origin;
+                                ctx->scanner_calibration.save("scanner_calib.json");
+
+                                std::vector<double> direction_vec, source_vec;
+                                direction_vec.push_back(direction(0));
+                                direction_vec.push_back(direction(1));
+                                direction_vec.push_back(direction(2));
+                                source_vec.push_back(origin(0));
+                                source_vec.push_back(origin(1));
+                                source_vec.push_back(origin(2));
+
+                                std::vector<std::vector<double>> orbit_points;
+                                orbit_points.push_back(std::vector<double>());
+                                orbit_points.push_back(std::vector<double>());
+                                orbit_points.push_back(std::vector<double>());
+                                int npoints = camera_board_points[0].size();
+
+                                for (size_t i = 0; i < camera_board_points.size(); i++)
+                                {
+                                    // if((i/3)%2==0) {
+                                    for (size_t j = 0; j < camera_board_points[0].size(); j++)
+                                    {
+                                        auto v = camera_board_points[i][j];
+                                        orbit_points[0].push_back(v(0));
+                                        orbit_points[1].push_back(v(1));
+                                        orbit_points[2].push_back(v(2));
+                                    }
+                                    // }
+                                }
+
+                                ctx->scanner_calibration.save_points("axis_points.json", direction_vec, source_vec, orbit_points, center_points, npoints);
+                            }
+                        }
+
+                        if (keycode == KEYCODE_SPACE)
+                        {
+                            bool err = false;
+                            nlohmann::json response;
+                            ctx->controller.rotate(ctx->scconfig.rotation_direction, start_angle_steps,delay_initial_rotation, response, delay_initial_rotation+1000, err);
+
+                            while (n_current_images < n_calibration_images && ctx->camera.get_flag_thread_camera_alive())
+                            {
+                                cv::Mat imnolaser, imnolaseru;
+                                err = false;
+                                ctx->controller.set_laser(0, 200, response, 2000, err);
+
+                                if (err)
+                                {
+                                    ctx->stremit(EV_ERROR, "error turning off laser", true);
+                                    break;
+                                }
+
+                                // TODO: could perhaps use kalman filter to improve accuracy instead of this simple but slow solution
+                                std::vector<std::vector<cv::Point2f>> image_board_points_history;
+                                int attempts = 0;
+
+                                for (int d = 0; d < pose_history_length && attempts <= max_pose_estimation_attempts; d++)
+                                {
+                                    std::vector<cv::Point2f> points;
+                                    cv::Mat frame, frameu, gray;
+                                    
+                                    boost::unique_lock<boost::mutex> lock_video_capture0(ctx->camera.mutex_video_capture);
+                                    ctx->camera.video_capture.read(frame);
+                                    lock_video_capture0.unlock();
+
+                                    if (frame.empty())
+                                        continue;
+
+                                    cv::undistort(frame, frameu, K, D);
+                                    cv::cvtColor(frameu, gray, cv::COLOR_BGR2GRAY);
+                                    bool found = cv::findChessboardCorners(gray, pattern_size, points);
+
+                                    if (found)
+                                    {
+                                        attempts = 0;
+                                        image_board_points_history.push_back(points);
+                                    }
+                                    else
+                                        attempts++;
+                                }
+
+                                if (attempts > max_pose_estimation_attempts)
+                                {
+                                    ctx->stremit(EV_ERROR, "chessboard not found", true);
+                                    break;
+                                }
+
+                                std::vector<cv::Point2f> avg_image_board_points;
+                                int npoints = patternw * patternh;
+
+                                for (int i = 0; i < npoints; i++)
+                                {
+                                    float x = 0, y = 0;
+
+                                    for (int j = 0; j < image_board_points_history.size(); j++)
+                                    {
+                                        x += image_board_points_history[j][i].x;
+                                        y += image_board_points_history[j][i].y;
+                                    }
+
+                                    x /= image_board_points_history.size();
+                                    y /= image_board_points_history.size();
+                                    avg_image_board_points.push_back(cv::Point2f(x, y));
+                                }
+
+                                cv::Mat rvecs, tvec;
+                                bool solved = cv::solvePnP(world_board_points, avg_image_board_points, K, D, rvecs, tvec);
+
+                                if (!solved)
+                                {
+                                    ctx->stremit(EV_ERROR, "error estimating pose", true);
+                                    break;
+                                }
+
+                                boost::unique_lock<boost::mutex> lock_video_capture1(ctx->camera.mutex_video_capture);
+                                ctx->camera.video_capture.read(imnolaser);
+                                lock_video_capture1.unlock();
+
+                                if (imnolaser.empty())
+                                {
+                                    ctx->stremit(EV_ERROR, "image was empty", true);
+                                    break;
+                                }
+
+                                cv::undistort(imnolaser, imnolaseru, K, D);
+
+                                cv::Mat imlaser, imlaseru;
+                                err = false;
+                                // msg = "laser;" + microcontroller::format("state", 1) + microcontroller::format("delay", 1000);
+                                // ctx->controller.send_message(msg, response, 2000, err);
+                                ctx->controller.set_laser(1, 1000, response, 2000, err);
+
+                                if (err)
+                                {
+                                    ctx->stremit(EV_ERROR, "error turning on laser", true);
+                                    break;
+                                }
+
+                                boost::unique_lock<boost::mutex> lock_video_capture2(ctx->camera.mutex_video_capture);
+                                ctx->camera.video_capture.read(imlaser);
+                                lock_video_capture2.unlock();
+
+                                if (imlaser.empty())
+                                {
+                                    ctx->stremit(EV_ERROR, "image was empty", true);
+                                    break;
+                                }
+
+                                err = false;
+                                ctx->controller.set_laser(0, 100, response, 2000, err);
+
+                                if (err)
+                                {
+                                    ctx->stremit(EV_ERROR, "error turning off laser", true);
+                                }
+
+                                cv::undistort(imlaser, imlaseru, K, D);
+
+                                std::vector<Eigen::Vector2d> image_board_corners;
+
+                                for (auto &point : avg_image_board_points)
+                                {
+                                    image_board_corners.push_back(Eigen::Vector2d(point.x, point.y));
+                                }
+
+                                Eigen::Vector2d a = image_board_corners[0],
+                                                b = image_board_corners[patternw - 1],
+                                                c = image_board_corners[(patternh - 1) * patternw],
+                                                d = image_board_corners[npoints - 1];
+                                std::vector<Eigen::Vector2d> corners;
+                                corners.push_back(a), corners.push_back(b),
+                                    corners.push_back(d), corners.push_back(c);
+                                polygon quad(corners);
+                                polygon poly(image_board_corners);
+                                rectangle frame = quad.frame();
+                                polygon translated_poly = poly.translate(-frame.UL); // May be unnecessary check later
+                                polygon translated_quad = quad.translate(-frame.UL);
+                                cv::Mat imlaser_cropped, cut_mask, imlaser_cut,
+                                    imnolaser_cropped, imnolaser_cut, diff;
+                                cv_helpers::crop(imlaseru, imlaser_cropped, frame.UL, frame.BR);
+                                cv_helpers::cut(cut_mask, imlaser_cropped.size(), translated_quad.sides);
+                                imlaser_cropped.copyTo(imlaser_cut, cut_mask);
+                                cv_helpers::crop(imnolaseru, imnolaser_cropped, frame.UL, frame.BR);
+                                imnolaser_cropped.copyTo(imnolaser_cut, cut_mask);
+                                line_segment laser_line;
+                                bool found_laser = find_laser_line(ctx, imlaser_cut, imnolaser_cut, translated_poly.vertices, pattern_size, laser_line);
+
+                                if (found_laser)
+                                {
+                                    n_current_images++;
+                                    auto id = std::to_string(n_current_images);
+                                    line_segment translated_laser_line = laser_line.translate(frame.UL);
+                                    cv::line(imlaser, cv::Point(translated_laser_line.a(0), translated_laser_line.a(1)),
+                                            cv::Point(translated_laser_line.b(0), translated_laser_line.b(1)), cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+
+                                    cv::drawFrameAxes(imlaser, K, D, rvecs, tvec, 20);
+                                    // uint8_t* data0;
+                                    uint8_t *data;
+                                    // auto len0 = cv_helpers::mat2buffer(imlaser_cut, data0);
+                                    auto len = cv_helpers::mat2buffer(imlaser, data);
+                                    // ctx->imemit(EV_DEBUGCAPTURE, data0, len0, true);
+                                    ctx->imemit(EV_DEBUGCAPTURE, data, len, true);
+
+                                    cv::Rodrigues(rvecs, rvecs);
+                                    Eigen::Matrix<double, 3, 4> T;
+                                    T << *rvecs.ptr<double>(0), *(rvecs.ptr<double>(0) + 1), *(rvecs.ptr<double>(0) + 2), *tvec.ptr<double>(0),
+                                        *rvecs.ptr<double>(1), *(rvecs.ptr<double>(1) + 1), *(rvecs.ptr<double>(1) + 2), *tvec.ptr<double>(1),
+                                        *rvecs.ptr<double>(2), *(rvecs.ptr<double>(2) + 1), *(rvecs.ptr<double>(2) + 2), *tvec.ptr<double>(2);
+                                    Eigen::Matrix3d H;
+                                    H.col(0) = T.col(0), H.col(1) = T.col(1), H.col(2) = T.col(3);
+                                    const int step_marker = 3;
+
+                                    for (int i = 0; i < patternh; i++)
+                                    {
+                                        int L_idx = i * patternw, R_idx = L_idx + patternw - 1;
+                                        Eigen::Vector2d L(avg_image_board_points[L_idx].x, avg_image_board_points[L_idx].y),
+                                            R(avg_image_board_points[R_idx].x, avg_image_board_points[R_idx].y),
+                                            intersection;
+                                        bool intersects = math_helpers::intersection_line_segment(L, R,
+                                                                                                translated_laser_line.a, translated_laser_line.b, intersection);
+                                        if (intersects)
+                                        {
+                                            cv::circle(imlaser, cv::Point(intersection(0), intersection(1)), 5, cv::Scalar(255, 0, 0));
+
+                                            int y = i * squareh, a_idx = i * patternw, b_idx = a_idx + step_marker,
+                                                c_idx = b_idx + step_marker;
+                                            Eigen::Vector2d A(0, y),
+                                                B(step_marker * squarew, y),
+                                                C(2 * step_marker * squarew, y),
+                                                a(avg_image_board_points[a_idx].x, avg_image_board_points[a_idx].y),
+                                                b(avg_image_board_points[b_idx].x, avg_image_board_points[b_idx].y),
+                                                c(avg_image_board_points[c_idx].x, avg_image_board_points[c_idx].y);
+
+                                            double Q = math_helpers::cross_ratio(A(0), B(0), C(0),
+                                                                                0, (b - a).norm(), (c - a).norm(), (intersection - a).norm());
+                                            Eigen::Vector3d camera_point = H * Eigen::Vector3d(Q, y, 1);
+
+                                            nlohmann::json j;
+                                            std::vector<double> xyz(camera_point.data(), camera_point.data() + camera_point.rows() * camera_point.cols());
+                                            j["type"] = "point";
+                                            j["xyz"] = xyz;
+                                            j["id"] = id;
+                                            ctx->stremit(EV_SCANNERCALIBDATA, j.dump(), true);
+                                            camera_plane_points_by_id.push_back(std::pair<int, Eigen::Vector3d>(n_current_images, camera_point));
+                                        }
+                                    }
+
+                                    auto imupdate = [ctx=ctx, &imlaser, id]()
+                                    {
+                                        if (ctx->camera.get_flag_display_video())
+                                        {
+                                            cv::Mat thumbnail;
+                                            cv::resize(imlaser, thumbnail, cv::Size(213, 120));
+                                            uint8_t *data0;
+                                            uint8_t *data1;
+                                            auto len0 = cv_helpers::mat2buffer(thumbnail, data0);
+                                            auto len1 = cv_helpers::mat2buffer(imlaser, data1);
+                                            nlohmann::json j;
+                                            j["type"] = "image";
+                                            j["size"] = "thumbnail";
+                                            j["id"] = id;
+                                            ctx->imemit(EV_SCANNERCALIBDATA, data0, j.dump(), len0, true);
+                                            j["type"] = "image";
+                                            j["size"] = "large";
+                                            j["id"] = id;
+                                            ctx->imemit(EV_SCANNERCALIBDATA, data1, j.dump(), len1, true);
+                                        }
+                                    };
+
+                                    imupdate();
+
+                                    for (int i = 0; i < camera_board_points.size(); i++)
+                                    {
+                                        Eigen::Vector4d hmg_world_board_point(world_board_points[i].x, world_board_points[i].y, world_board_points[i].z, 1);
+                                        Eigen::Vector3d camera_board_point = T * hmg_world_board_point;
+                                        camera_board_points[i].push_back(camera_board_point);
+                                    }
+
+                                    ctx->controller.rotate(rotation_direction, steps_per_calibration_image,delay_calibration_image_rotation, response, delay_calibration_image_rotation+1000, err);
+                                }
+                            }
+                        }
+                        
+                    }
+                    else if(!type.compare("clear_plane_points"))
                     {
-                        auto data = msg["data"].get<std::string>();
+                        // auto data = message["data"].get<std::string>();
                         // std::cout<<msg.dump()<<std::endl;
 
-                        if (!data.compare("clear"))
+                        // if (!data.compare("clear"))
                             camera_plane_points_by_id.clear();
-                    }
-
-                    // Calibrate
-                    if (keycode == KEYCODE_C)
-                    {
-                        Eigen::Hyperplane<double, 3> laser_plane(Eigen::Vector3d(1, 1, 1), 1);
-                        std::vector<Eigen::Vector3d> camera_plane_points(camera_plane_points_by_id.size());
-
-                        for (int i = 0; i < camera_plane_points_by_id.size(); i++)
-                        {
-                            camera_plane_points[i] = camera_plane_points_by_id[i].second;
-                        }
-
-                        Eigen::Vector3d direction, origin;
-                        bool success = calibrate(camera_plane_points, camera_board_points, boundaries_lower, boundaries_upper, laser_plane, direction, origin);
-
-                        if (success)
-                        {
-                            self->ctx.scanner_calibration.laser_plane = laser_plane;
-                            Eigen::Matrix<double, 4, 1> n = laser_plane.coeffs();
-
-                            // std::cout<<"svd:"<< "("<<n(3)<<"-XX*("<<n(0)<<")-YY*("<<n(1)<<"))/("<< n(2)<<")"<<std::endl;
-
-                            boost::unique_lock<boost::mutex> lock(self->ctx.mtx_calibrated);
-                            self->ctx.calibrated = true;
-                            lock.unlock();
-                            nlohmann::json j;
-                            j["prop"] = PROP_SCANNERCALIBRATED;
-                            j["value"] = true;
-                            self->ctx.stremit(EV_PROPCHANGED, j.dump(), true);
-                            std::vector<double> nvec;
-                            nvec.push_back(n(0)), nvec.push_back(n(1)), nvec.push_back(n(2)), nvec.push_back(n(3));
-                            j.clear();
-                            j["type"] = "plane";
-                            j["n"] = nvec;
-                            // j["centroid"] = centroid;
-                            self->ctx.stremit(EV_SCANNERCALIBDATA, j.dump(), true);
-
-                            std::vector<std::vector<double>> center_points;
-                            Eigen::Vector3d a, b;
-                            get_rotation_axis(camera_board_points, a, b, center_points);
-
-                            // Eigen::Matrix4d RT;
-                            // bool ok=get_rigid_body_transform(camera_board_points,RT,direction,source);
-                            // auto RT_rotation_axis=get_rotation_axis_transform(camera_board_points);
-                            self->ctx.scanner_calibration.rotation_axis_direction = direction;
-                            self->ctx.scanner_calibration.rotation_axis_origin = origin;
-                            self->ctx.scanner_calibration.save("scanner_calib.json");
-
-                            std::vector<double> direction_vec, source_vec;
-                            direction_vec.push_back(direction(0));
-                            direction_vec.push_back(direction(1));
-                            direction_vec.push_back(direction(2));
-                            source_vec.push_back(origin(0));
-                            source_vec.push_back(origin(1));
-                            source_vec.push_back(origin(2));
-
-                            std::vector<std::vector<double>> orbit_points;
-                            orbit_points.push_back(std::vector<double>());
-                            orbit_points.push_back(std::vector<double>());
-                            orbit_points.push_back(std::vector<double>());
-                            int npoints = camera_board_points[0].size();
-
-                            for (size_t i = 0; i < camera_board_points.size(); i++)
-                            {
-                                // if((i/3)%2==0) {
-                                for (size_t j = 0; j < camera_board_points[0].size(); j++)
-                                {
-                                    auto v = camera_board_points[i][j];
-                                    orbit_points[0].push_back(v(0));
-                                    orbit_points[1].push_back(v(1));
-                                    orbit_points[2].push_back(v(2));
-                                }
-                                // }
-                            }
-
-                            self->ctx.scanner_calibration.save_points("axis_points.json", direction_vec, source_vec, orbit_points, center_points, npoints);
-                        }
-                    }
-
-                    if (keycode == KEYCODE_SPACE)
-                    {
-                        bool err = false;
-                        self->ctx.controller.rotate(self->ctx.scconfig.rotation_direction, start_angle_steps,delay_initial_rotation, response, delay_initial_rotation+1000, err);
-
-                        while (n_current_images < n_calibration_images)
-                        {
-                            cv::Mat imnolaser, imnolaseru;
-                            err = false;
-                            self->ctx.controller.set_laser(0, 200, response, 2000, err);
-
-                            if (err)
-                            {
-                                self->ctx.stremit(EV_ERROR, "error turning off laser", true);
-                                break;
-                            }
-
-                            // TODO: could perhaps use kalman filter to improve accuracy instead of this simple but slow solution
-                            std::vector<std::vector<cv::Point2f>> image_board_points_history;
-                            int attempts = 0;
-
-                            for (int d = 0; d < pose_history_length && attempts <= max_pose_estimation_attempts; d++)
-                            {
-                                std::vector<cv::Point2f> points;
-                                cv::Mat frame, frameu, gray;
-                                boost::unique_lock<boost::mutex> lock(*vcap_mtx);
-                                cap->read(frame);
-                                lock.unlock();
-
-                                if (frame.empty())
-                                    continue;
-
-                                cv::undistort(frame, frameu, K, D);
-                                cv::cvtColor(frameu, gray, cv::COLOR_BGR2GRAY);
-                                bool found = cv::findChessboardCorners(gray, pattern_size, points);
-
-                                if (found)
-                                {
-                                    attempts = 0;
-                                    image_board_points_history.push_back(points);
-                                }
-                                else
-                                    attempts++;
-                            }
-
-                            if (attempts > max_pose_estimation_attempts)
-                            {
-                                self->ctx.stremit(EV_ERROR, "chessboard not found", true);
-                                break;
-                            }
-
-                            std::vector<cv::Point2f> avg_image_board_points;
-                            int npoints = patternw * patternh;
-
-                            for (int i = 0; i < npoints; i++)
-                            {
-                                float x = 0, y = 0;
-
-                                for (int j = 0; j < image_board_points_history.size(); j++)
-                                {
-                                    x += image_board_points_history[j][i].x;
-                                    y += image_board_points_history[j][i].y;
-                                }
-
-                                x /= image_board_points_history.size();
-                                y /= image_board_points_history.size();
-                                avg_image_board_points.push_back(cv::Point2f(x, y));
-                            }
-
-                            cv::Mat rvecs, tvec;
-                            bool solved = cv::solvePnP(world_board_points, avg_image_board_points, K, D, rvecs, tvec);
-
-                            if (!solved)
-                            {
-                                self->ctx.stremit(EV_ERROR, "error estimating pose", true);
-                                break;
-                            }
-
-                            boost::unique_lock<boost::mutex> lock(*vcap_mtx);
-                            cap->read(imnolaser);
-                            lock.unlock();
-
-                            if (imnolaser.empty())
-                            {
-                                self->ctx.stremit(EV_ERROR, "image was empty", true);
-                                break;
-                            }
-
-                            cv::undistort(imnolaser, imnolaseru, K, D);
-
-                            cv::Mat imlaser, imlaseru;
-                            err = false;
-                            // msg = "laser;" + microcontroller::format("state", 1) + microcontroller::format("delay", 1000);
-                            // self->ctx.controller.send_message(msg, response, 2000, err);
-                            self->ctx.controller.set_laser(1, 1000, response, 2000, err);
-
-                            if (err)
-                            {
-                                self->ctx.stremit(EV_ERROR, "error turning on laser", true);
-                                break;
-                            }
-
-                            boost::unique_lock<boost::mutex> lock_(*vcap_mtx);
-                            cap->read(imlaser);
-                            lock_.unlock();
-
-                            if (imlaser.empty())
-                            {
-                                self->ctx.stremit(EV_ERROR, "image was empty", true);
-                                break;
-                            }
-
-                            err = false;
-                            self->ctx.controller.set_laser(0, 100, response, 2000, err);
-
-                            if (err)
-                            {
-                                self->ctx.stremit(EV_ERROR, "error turning off laser", true);
-                            }
-
-                            cv::undistort(imlaser, imlaseru, K, D);
-
-                            std::vector<Eigen::Vector2d> image_board_corners;
-
-                            for (auto &point : avg_image_board_points)
-                            {
-                                image_board_corners.push_back(Eigen::Vector2d(point.x, point.y));
-                            }
-
-                            Eigen::Vector2d a = image_board_corners[0],
-                                            b = image_board_corners[patternw - 1],
-                                            c = image_board_corners[(patternh - 1) * patternw],
-                                            d = image_board_corners[npoints - 1];
-                            std::vector<Eigen::Vector2d> corners;
-                            corners.push_back(a), corners.push_back(b),
-                                corners.push_back(d), corners.push_back(c);
-                            polygon quad(corners);
-                            polygon poly(image_board_corners);
-                            rectangle frame = quad.frame();
-                            polygon translated_poly = poly.translate(-frame.UL); // May be unnecessary check later
-                            polygon translated_quad = quad.translate(-frame.UL);
-                            cv::Mat imlaser_cropped, cut_mask, imlaser_cut,
-                                imnolaser_cropped, imnolaser_cut, diff;
-                            cv_helpers::crop(imlaseru, imlaser_cropped, frame.UL, frame.BR);
-                            cv_helpers::cut(cut_mask, imlaser_cropped.size(), translated_quad.sides);
-                            imlaser_cropped.copyTo(imlaser_cut, cut_mask);
-                            cv_helpers::crop(imnolaseru, imnolaser_cropped, frame.UL, frame.BR);
-                            imnolaser_cropped.copyTo(imnolaser_cut, cut_mask);
-                            line_segment laser_line;
-                            bool found_laser = find_laser_line(self, imlaser_cut, imnolaser_cut, translated_poly.vertices, pattern_size, laser_line);
-
-                            if (found_laser)
-                            {
-                                n_current_images++;
-                                auto id = std::to_string(n_current_images);
-                                line_segment translated_laser_line = laser_line.translate(frame.UL);
-                                cv::line(imlaser, cv::Point(translated_laser_line.a(0), translated_laser_line.a(1)),
-                                         cv::Point(translated_laser_line.b(0), translated_laser_line.b(1)), cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
-
-                                cv::drawFrameAxes(imlaser, K, D, rvecs, tvec, 20);
-                                // uint8_t* data0;
-                                uint8_t *data;
-                                // auto len0 = cv_helpers::mat2buffer(imlaser_cut, data0);
-                                auto len = cv_helpers::mat2buffer(imlaser, data);
-                                // self->ctx.imemit(EV_DEBUGCAPTURE, data0, len0, true);
-                                self->ctx.imemit(EV_DEBUGCAPTURE, data, len, true);
-
-                                cv::Rodrigues(rvecs, rvecs);
-                                Eigen::Matrix<double, 3, 4> T;
-                                T << *rvecs.ptr<double>(0), *(rvecs.ptr<double>(0) + 1), *(rvecs.ptr<double>(0) + 2), *tvec.ptr<double>(0),
-                                    *rvecs.ptr<double>(1), *(rvecs.ptr<double>(1) + 1), *(rvecs.ptr<double>(1) + 2), *tvec.ptr<double>(1),
-                                    *rvecs.ptr<double>(2), *(rvecs.ptr<double>(2) + 1), *(rvecs.ptr<double>(2) + 2), *tvec.ptr<double>(2);
-                                Eigen::Matrix3d H;
-                                H.col(0) = T.col(0), H.col(1) = T.col(1), H.col(2) = T.col(3);
-                                const int step_marker = 3;
-
-                                for (int i = 0; i < patternh; i++)
-                                {
-                                    int L_idx = i * patternw, R_idx = L_idx + patternw - 1;
-                                    Eigen::Vector2d L(avg_image_board_points[L_idx].x, avg_image_board_points[L_idx].y),
-                                        R(avg_image_board_points[R_idx].x, avg_image_board_points[R_idx].y),
-                                        intersection;
-                                    bool intersects = math_helpers::intersection_line_segment(L, R,
-                                                                                              translated_laser_line.a, translated_laser_line.b, intersection);
-                                    if (intersects)
-                                    {
-                                        cv::circle(imlaser, cv::Point(intersection(0), intersection(1)), 5, cv::Scalar(255, 0, 0));
-
-                                        int y = i * squareh, a_idx = i * patternw, b_idx = a_idx + step_marker,
-                                            c_idx = b_idx + step_marker;
-                                        Eigen::Vector2d A(0, y),
-                                            B(step_marker * squarew, y),
-                                            C(2 * step_marker * squarew, y),
-                                            a(avg_image_board_points[a_idx].x, avg_image_board_points[a_idx].y),
-                                            b(avg_image_board_points[b_idx].x, avg_image_board_points[b_idx].y),
-                                            c(avg_image_board_points[c_idx].x, avg_image_board_points[c_idx].y);
-
-                                        double Q = math_helpers::cross_ratio(A(0), B(0), C(0),
-                                                                             0, (b - a).norm(), (c - a).norm(), (intersection - a).norm());
-                                        Eigen::Vector3d camera_point = H * Eigen::Vector3d(Q, y, 1);
-
-                                        nlohmann::json j;
-                                        std::vector<double> xyz(camera_point.data(), camera_point.data() + camera_point.rows() * camera_point.cols());
-                                        j["type"] = "point";
-                                        j["xyz"] = xyz;
-                                        j["id"] = id;
-                                        self->ctx.stremit(EV_SCANNERCALIBDATA, j.dump(), true);
-                                        camera_plane_points_by_id.push_back(std::pair<int, Eigen::Vector3d>(n_current_images, camera_point));
-                                    }
-                                }
-
-                                auto imupdate = [self, &imlaser, id]()
-                                {
-                                    boost::unique_lock<boost::mutex> lock(self->ctx.camera.mtx_video_alive);
-
-                                    if (self->ctx.camera.video_alive)
-                                    {
-                                        cv::Mat thumbnail;
-                                        cv::resize(imlaser, thumbnail, cv::Size(213, 120));
-                                        uint8_t *data0;
-                                        uint8_t *data1;
-                                        auto len0 = cv_helpers::mat2buffer(thumbnail, data0);
-                                        auto len1 = cv_helpers::mat2buffer(imlaser, data1);
-                                        nlohmann::json j;
-                                        j["type"] = "image";
-                                        j["size"] = "thumbnail";
-                                        j["id"] = id;
-                                        self->ctx.imemit(EV_SCANNERCALIBDATA, data0, j.dump(), len0, true);
-                                        j["type"] = "image";
-                                        j["size"] = "large";
-                                        j["id"] = id;
-                                        self->ctx.imemit(EV_SCANNERCALIBDATA, data1, j.dump(), len1, true);
-                                    }
-                                };
-
-                                imupdate();
-
-                                for (int i = 0; i < camera_board_points.size(); i++)
-                                {
-                                    Eigen::Vector4d hmg_world_board_point(world_board_points[i].x, world_board_points[i].y, world_board_points[i].z, 1);
-                                    Eigen::Vector3d camera_board_point = T * hmg_world_board_point;
-                                    camera_board_points[i].push_back(camera_board_point);
-                                }
-
-                                self->ctx.controller.rotate(rotation_direction, steps_per_calibration_image,delay_calibration_image_rotation, response, delay_calibration_image_rotation+1000, err);
-                            }
-                        }
-                    }
+                    }                    
                 }
-                catch (boost::thread_interrupted &)
-                {
-                    running = false;
-                    self->ctx.commandq.enqueue(std::shared_ptr<command>(new command_scannercalibstop(self->ctx, COMM_SCANNERCALIBSTOP)));
-                }
+                catch (boost::thread_interrupted &) {}
             }
         };
 
+        ctx->camera.thread_camera = boost::thread{fncamera};
         nlohmann::json j;
         j["prop"] = PROP_CALIBRATINGSCANNER;
         j["value"] = true;
-        ctx.stremit(EV_PROPCHANGED, j.dump(), true);
-        j["prop"] = PROP_VIDEOALIVE;
+        ctx->stremit(EV_PROPCHANGED, j.dump(), true);
+        j["prop"] = PROP_DISPLAYVIDEO;
         j["value"] = true;
-        ctx.stremit(EV_PROPCHANGED, j.dump(), true);
-        ctx.stremit(EV_SCANNERCALIBSTART, "", true);
-        ctx.camera.thread_camera = boost::thread{fncamera};
-        ctx.camera.thread_video = boost::thread{fnvideo};
+        ctx->stremit(EV_PROPCHANGED, j.dump(), true);
+        ctx->stremit(EV_SCANNERCALIBSTART, "", true);
     }
 }

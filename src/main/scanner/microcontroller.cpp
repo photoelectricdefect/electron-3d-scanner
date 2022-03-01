@@ -11,7 +11,7 @@ namespace scanner
     {
         boost::unique_lock<boost::mutex> lock(commandq.mtx);
 
-        if (commandq.q.size() > 1 || !controller_alive)
+        if (commandq.q.size() > 1 || !get_flag_thread_controller_alive())
             return;
 
         commandq.q.push(comm);
@@ -137,4 +137,15 @@ namespace scanner
         auto msg = "rotate;" + microcontroller::format("steps", steps) + microcontroller::format("direction", direction)+ microcontroller::format("delay", delay);
         send_message(msg, response, timeout, err);
     }
+
+    bool microcontroller::get_flag_thread_controller_alive() {
+        boost::unique_lock<boost::mutex> lock(mutex_thread_controller);
+        return thread_controller_alive;
+    }
+
+    void microcontroller::set_flag_thread_controller_alive(bool value) {
+        boost::unique_lock<boost::mutex> lock(mutex_thread_controller);
+        thread_controller_alive=value;
+    }
+
 }

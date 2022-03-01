@@ -59,8 +59,8 @@ app.whenReady().then(openIndex).then(() => {
     //   scanner.sendCommand(JSON.stringify(comm));
     //  });  
 
-     ipcMain.on('forward-keystroke', (e, kyc) => {
-      scanner.keyboardInput(JSON.stringify({code: -1, keycode: kyc}));
-     });  
+    //  ipcMain.on('forward-keystroke', (e, kyc) => {
+    //   scanner.keyboardInput(JSON.stringify({code: -1, keycode: kyc}));
+    //  });  
   });
 });

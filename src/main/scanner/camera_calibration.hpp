@@ -2,16 +2,13 @@
 #define CAMERACALIBRATION_H_
 
 #include <opencv2/highgui.hpp>
+#include <boost/thread.hpp>
 #include <json.hpp>
 
 namespace scanner {    
     class camera_calibration {
         public:
-            // cv::Mat K, D;
-            // cv::Size pattern_size=cv::Size(9,6);
-            // double square_size=15.5;
-            // int n_captures=35;
-
+            boost::mutex mutex_KD;
             cv::Mat K, D;
             cv::Size pattern_size;
             double square_size;
