@@ -32,18 +32,20 @@ namespace scanner {
                 std::string name;                
             } camera_info;
 
-            boost::thread thread_camera, thread_video;
+            boost::thread thread_camera, thread_video_capture, thread_video_open;
             
-            boost::mutex mutex_thread_video_alive, /*mutex_display_video,*/
+            boost::mutex mutex_thread_video_open_alive, mutex_thread_video_capture_alive,
                         mutex_video_capture, mutex_thread_camera_alive,
-                        /*mutex_calibrating_camera,*/mutex_message_thread_camera,
-                        mutex_camera_calibrated,mutex_selected_camera_info,
-                        mutex_video_conditions;
-            
-            boost::condition_variable condition_video_conditions, condition_message_thread_camera,
-            condition_selected_camera_info;
+                        mutex_calibrating_camera,mutex_message_thread_camera,
+                        mutex_camera_calibrated,mutex_selected_camera_info
+                        mutex_video_open;
 
-            bool calibrating_camera, camera_calibrated, thread_video_alive, display_video, thread_camera_alive;
+            boost::condition_variable condition_message_thread_camera,
+            condition_selected_camera_info,condition_video_open;
+
+            bool calibrating_camera, camera_calibrated, video_open, 
+            thread_video_open_alive, thread_video_capture_alive,
+            thread_camera_alive;
 
             camera_calibration_ camera_calibration;
             
@@ -55,11 +57,17 @@ namespace scanner {
 
             camera();
 
-            bool get_flag_display_video();
-            void set_flag_display_video(bool value);
+            // bool get_flag_display_video();
+            // void set_flag_display_video(bool value);
 
-            bool get_flag_thread_video_alive();
-            void set_flag_thread_video_alive(bool value);
+            bool get_flag_video_open();
+            void set_flag_video_open(bool value);
+
+            bool get_flag_thread_video_open_alive();
+            void set_flag_thread_video_open_alive(bool value);
+
+            bool get_flag_thread_video_capture_alive();
+            void set_flag_thread_video_capture_alive(bool value);
 
             bool get_flag_thread_camera_alive();
             void set_flag_thread_camera_alive(bool value);
@@ -77,7 +85,7 @@ namespace scanner {
 
             static std::vector<camera_info> get_camera_info_list();
             void set_selected_camera_info(const camera_info& cam_info);
-            void get_selected_camera_info(camera::camera_info& cam_info);
+            void get_selected_camera_info(camera_info& cam_info);
             
             #ifdef __linux__ 
             static int get_videoid(std::string camera_name);            

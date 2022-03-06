@@ -16,30 +16,39 @@ camera::camera():message_thread_camera(nullptr),selected_camera_info(nullptr) {
     message_thread_camera=nullptr;
 }
 
-bool camera::get_flag_display_video() {
-    boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
-    return display_video;
+bool camera::get_flag_video_open() {
+    boost::unique_lock<boost::mutex> lock(mutex_video_open);
+    return video_open;
 }
 
-void camera::set_flag_display_video(bool value) {
-    //unique:lock is scoped, DO NOT remove parentheses
-    {
-        boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
-        display_video=value;
-    }
-
-    condition_video_conditions.notify_one();
+void camera::set_flag_video_open(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_video_open);
+    video_open=value;    
+    lock.unlock();
+    condition_video_open.notify_one();
 }
 
-bool camera::get_flag_thread_video_alive() {
-    boost::unique_lock<boost::mutex> lock(mutex_thread_video_alive);
-    return thread_video_alive;    
+
+bool camera::get_flag_thread_video_open_alive() {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_video_open_alive);
+    return thread_video_open_alive;    
 }
 
-void camera::set_flag_thread_video_alive(bool value) {
-    boost::unique_lock<boost::mutex> lock(mutex_thread_video_alive);
-    thread_video_alive=value;    
+void camera::set_flag_thread_video_open_alive(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_video_open_alive);
+    thread_video_open_alive=value;    
     thread_video.interrupt();
+}
+
+bool camera::get_flag_thread_video_capture_alive() {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_video_capture_alive);
+    return thread_video_capture_alive;    
+}
+
+void camera::set_flag_thread_video_capture_alive(bool value) {
+    boost::unique_lock<boost::mutex> lock(mutex_thread_video_capture_alive);
+    thread_video_capture_alive=value;    
+    thread_video_capture.interrupt();
 }
 
 bool camera::get_flag_thread_camera_alive() {
@@ -58,11 +67,9 @@ bool camera::get_flag_calibrating_camera() {
 }
 
 void camera::set_flag_calibrating_camera(bool value) {
-    {
-        boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
-        calibrating_camera=value;    
-    }
-    
+    boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
+    calibrating_camera=value;    
+    lock.unlock();
     condition_video_conditions.notify_one();
 }
 

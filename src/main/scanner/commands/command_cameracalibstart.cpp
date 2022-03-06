@@ -54,13 +54,13 @@ void command_cameracalibstart::execute()
         // };
 
         cv::Mat frame, gray;
-        bool read_success=false;
+        bool video_device_open=false;
         int current_captures = 0;
 
         while (ctx->camera.get_flag_thread_camera_alive()) {
             boost::this_thread::sleep_for(boost::chrono::milliseconds(delay_open_capture_ms));
 
-            if(!read_success) {
+            if(!video_device_open) {
                 camera::camera_info selected_camera_info;
                 ctx->camera.get_selected_camera_info(selected_camera_info);
                 ctx->camera.video_capture.open(selected_camera_info.id);
@@ -87,9 +87,9 @@ void command_cameracalibstart::execute()
                     }
                 }
                 
-                read_success=ctx->camera.video_capture.read(frame);
+                video_device_open=ctx->camera.video_capture.read(frame);
 
-                if (!read_success) {
+                if (!video_device_open) {
                     continue;
                 }
 
