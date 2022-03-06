@@ -8,6 +8,7 @@ namespace scanner {
     void command_cameracalibstop::execute() {
       ctx->camera.set_flag_calibrating_camera(false);
       ctx->camera.set_flag_thread_camera_alive(false);
+		  ctx->camera.thread_camera.interrupt();
 		  ctx->camera.thread_camera.join();
       nlohmann::json j;
       j["prop"] = PROP_CALIBRATINGCAMERA;

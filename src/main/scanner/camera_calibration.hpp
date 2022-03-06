@@ -8,7 +8,6 @@
 namespace scanner {    
     class camera_calibration {
         public:
-            boost::mutex mutex_KD;
             cv::Mat K, D;
             cv::Size pattern_size;
             double square_size;

@@ -21,7 +21,9 @@ namespace scanner {
     class scanner {
         public:            
             boost::thread thread_main;
+            
             bool thread_main_alive, scanning, calibrating_scanner, scanner_calibrated;
+            
             boost::mutex mutex_calibrating_scanner,mutex_scanning,mutex_scanner_calibrated, mutex_thread_main_alive,
             mtx_calibrated;
 

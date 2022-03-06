@@ -50,6 +50,7 @@ namespace scanner
                         PROP_SCANNERCALIBRATED = "scannercalibrated",
                         PROP_CAMERA_CALIB_CAPTURES = "cameracalibcaptures",
                         PROP_CAMERALIST = "cameralist",
+                        PROP_SELECTEDCAMERA = "selectedcamera",
                         PROP_SCANNER_CALIBRATION_DATA = "scannercalibrationdata",
                         PROP_SCAN_RENDER_DATA = "scanrenderdata";
 

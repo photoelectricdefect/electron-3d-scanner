@@ -344,15 +344,22 @@ var index = () => {
     };
 
     const loadCameraList=()=> {
-        scanner.getProp(globals.properties.cameralist).then((response)=> {
+        return scanner.getProp(globals.properties.cameralist).then((response)=> {
             response=JSON.parse(response);
             cameraSelect.innerHTML="";
 
             for(var i=0;i<response.data.length;i++) {
                 var option = document.createElement("option");
                 option.text = response.data[i].name;
+                option.value = response.data[i].id;
                 cameraSelect.add(option);  
             }
+
+            cameraSelect.addEventListener("change",(e)=>{
+                let text=cameraSelect.options[cameraSelect.selectedIndex].text;
+                let value=cameraSelect.options[cameraSelect.selectedIndex].value;
+                setProp(globals.properties.selectedcamera,{id:parseInt(value),name:text});
+            });
         });
     };
 
@@ -594,7 +601,14 @@ var index = () => {
     
                 scanner.sendCommand(JSON.stringify({code: globals.commands.controllerstart}));
                 scanner.sendCommand(JSON.stringify({code: globals.commands.videostart}));    
+
                 loadCameraList();
+                // .then(()=>{
+                //     if(cameraSelect.options.length>0) {
+                //         setProp(globals.properties.selectedcamera,{id:parseInt(cameraSelect.options[cameraSelect.selectedIndex].value),
+                //             name:cameraSelect.options[cameraSelect.selectedIndex].text});
+                //     }        
+                // });
             });   
 
             scanner.sendCommand(JSON.stringify({code: globals.commands.mainstart}));

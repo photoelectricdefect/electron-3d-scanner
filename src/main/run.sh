@@ -1,2 +1,2 @@
-sudo node-gyp build
+sudo npm run build
 npm start

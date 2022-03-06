@@ -34,12 +34,14 @@ namespace scanner {
 
             boost::thread thread_camera, thread_video;
             
-            boost::mutex mutex_thread_video_alive, mutex_display_video,
+            boost::mutex mutex_thread_video_alive, /*mutex_display_video,*/
                         mutex_video_capture, mutex_thread_camera_alive,
-                        mutex_calibrating_camera,mutex_message_thread_camera,
-                        mutex_camera_calibrated;
+                        /*mutex_calibrating_camera,*/mutex_message_thread_camera,
+                        mutex_camera_calibrated,mutex_selected_camera_info,
+                        mutex_video_conditions;
             
-            boost::condition_variable condition_display_video, condition_message_thread_camera;
+            boost::condition_variable condition_video_conditions, condition_message_thread_camera,
+            condition_selected_camera_info;
 
             bool calibrating_camera, camera_calibrated, thread_video_alive, display_video, thread_camera_alive;
 
@@ -47,8 +49,10 @@ namespace scanner {
             
             cv::VideoCapture video_capture;
 
-            nlohmann::json* message_thread_camera;
+            std::unique_ptr<nlohmann::json> message_thread_camera;
             
+            std::unique_ptr<camera_info> selected_camera_info;
+
             camera();
 
             bool get_flag_display_video();
@@ -69,10 +73,12 @@ namespace scanner {
             void clear_message_thread_camera();
             void set_message_thread_camera(const nlohmann::json& message);
             void get_message_thread_camera(nlohmann::json& message);
-            void try_get_message_thread_camera(nlohmann::json* message);
+            bool try_get_message_thread_camera(nlohmann::json& message);
 
-            static std::vector<camera_info> get_camera_list();
-
+            static std::vector<camera_info> get_camera_info_list();
+            void set_selected_camera_info(const camera_info& cam_info);
+            void get_selected_camera_info(camera::camera_info& cam_info);
+            
             #ifdef __linux__ 
             static int get_videoid(std::string camera_name);            
             #elif

@@ -52,6 +52,7 @@ const events =  {
     scannercalibrated: "scannercalibrated",
     cameracalibcaptures:"cameracalibcaptures",
     cameralist:"cameralist",
+    selectedcamera:"selectedcamera",
     scannercalibrationdata:"scannercalibrationdata",
     scanrenderdata:"scanrenderdata",
   };

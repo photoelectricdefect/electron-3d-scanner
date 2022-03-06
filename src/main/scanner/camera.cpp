@@ -12,23 +12,23 @@
 #include <iostream>
 
 namespace scanner {
-camera::camera() {
+camera::camera():message_thread_camera(nullptr),selected_camera_info(nullptr) {
     message_thread_camera=nullptr;
 }
 
 bool camera::get_flag_display_video() {
-    boost::unique_lock<boost::mutex> lock(mutex_display_video);
+    boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
     return display_video;
 }
 
 void camera::set_flag_display_video(bool value) {
     //unique:lock is scoped, DO NOT remove parentheses
     {
-        boost::unique_lock<boost::mutex> lock(mutex_display_video);
+        boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
         display_video=value;
     }
 
-    condition_display_video.notify_one();
+    condition_video_conditions.notify_one();
 }
 
 bool camera::get_flag_thread_video_alive() {
@@ -39,6 +39,7 @@ bool camera::get_flag_thread_video_alive() {
 void camera::set_flag_thread_video_alive(bool value) {
     boost::unique_lock<boost::mutex> lock(mutex_thread_video_alive);
     thread_video_alive=value;    
+    thread_video.interrupt();
 }
 
 bool camera::get_flag_thread_camera_alive() {
@@ -52,13 +53,17 @@ void camera::set_flag_thread_camera_alive(bool value) {
 }
 
 bool camera::get_flag_calibrating_camera() {
-    boost::unique_lock<boost::mutex> lock(mutex_calibrating_camera);
+    boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
     return calibrating_camera;    
 }
 
 void camera::set_flag_calibrating_camera(bool value) {
-    boost::unique_lock<boost::mutex> lock(mutex_calibrating_camera);
-    calibrating_camera=value;    
+    {
+        boost::unique_lock<boost::mutex> lock(mutex_video_conditions);
+        calibrating_camera=value;    
+    }
+    
+    condition_video_conditions.notify_one();
 }
 
 bool camera::get_flag_camera_calibrated() {
@@ -73,8 +78,7 @@ void camera::set_flag_camera_calibrated(bool value) {
 
 void camera::clear_message_thread_camera() {
     boost::unique_lock<boost::mutex> lock(mutex_message_thread_camera);
-    delete message_thread_camera;
-    message_thread_camera=nullptr;
+    message_thread_camera.reset(nullptr);
 }
 
 void camera::set_message_thread_camera(const nlohmann::json& message) {
@@ -82,11 +86,10 @@ void camera::set_message_thread_camera(const nlohmann::json& message) {
 
     if(message_thread_camera!=nullptr)
     {
-        delete message_thread_camera;
-        message_thread_camera=nullptr;
+        message_thread_camera.reset(nullptr);
     }
 
-    message_thread_camera = new nlohmann::json;
+    message_thread_camera.reset(new nlohmann::json);
     *message_thread_camera=message;
     condition_message_thread_camera.notify_one();
 }
@@ -100,19 +103,20 @@ void camera::get_message_thread_camera(nlohmann::json& message) {
     }
 
     message=*message_thread_camera;
-    delete message_thread_camera;
-    message_thread_camera=nullptr;
+    message_thread_camera.reset(nullptr);
 }
 
-void camera::try_get_message_thread_camera(nlohmann::json* message) {
+bool camera::try_get_message_thread_camera(nlohmann::json& message) {
     boost::unique_lock<boost::mutex> lock(mutex_message_thread_camera);
-    message=message_thread_camera;
 
     if(message_thread_camera!=nullptr) {
-        delete message_thread_camera;
+        message=*message_thread_camera;
+        message_thread_camera.reset(nullptr);
+        
+        return true;
     }
 
-    message_thread_camera=nullptr;
+    return false;
 }
 
 
@@ -168,7 +172,7 @@ void camera::try_get_message_thread_camera(nlohmann::json* message) {
     // TODO
     #endif
 
-    std::vector<camera::camera_info> camera::get_camera_list() {
+    std::vector<camera::camera_info> camera::get_camera_info_list() {
         auto capabilities=get_v4l2_capabilities();
         std::vector<camera::camera_info> cam_list;
 
@@ -184,5 +188,23 @@ void camera::try_get_message_thread_camera(nlohmann::json* message) {
         }
 
         return cam_list;
+    }
+
+    void camera::set_selected_camera_info(const camera::camera_info& cam_info) {
+        boost::unique_lock<boost::mutex> lock(mutex_selected_camera_info);
+        selected_camera_info=std::make_unique<camera::camera_info>(cam_info);
+        condition_selected_camera_info.notify_one();
+        thread_video.interrupt();
+    }
+
+    void camera::get_selected_camera_info(camera::camera_info& cam_info) {
+        boost::unique_lock<boost::mutex> lock(mutex_selected_camera_info);
+                        
+        while(selected_camera_info==nullptr)
+        {
+            condition_selected_camera_info.wait(lock);
+        }
+
+        cam_info=*selected_camera_info;
     }
 }

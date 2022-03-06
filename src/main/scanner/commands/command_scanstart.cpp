@@ -256,14 +256,14 @@ namespace scanner
 
                         for (size_t i = 0; i < nsteps && ctx->camera.get_flag_thread_camera_alive(); i++)
                         {
-                            nlohmann::json* message_intermittent;
-                            ctx->camera.try_get_message_thread_camera(message_intermittent);
+                            nlohmann::json message_intermittent;
+                            bool message_intermittent_recieved=ctx->camera.try_get_message_thread_camera(message_intermittent);
 
-                            if(message_intermittent!=nullptr) {
-                                type=(*message_intermittent)["type"];
+                            if(message_intermittent_recieved) {
+                                type=message_intermittent["type"];
 
                                 if(!type.compare("keyup")) {
-                                    int keycode=(*message_intermittent)["keycode"].get<int>();
+                                    int keycode=message_intermittent["keycode"].get<int>();
                                 
                                     if (keycode == KEYCODE_SPACE)
                                     {

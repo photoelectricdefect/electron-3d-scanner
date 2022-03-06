@@ -29,8 +29,8 @@ std::map<std::string, Napi::FunctionReference> ev_handlers;
 
 scanner::scanner() {
     init();
-    set_flag_scanner_calibrated(true);
-    camera.set_flag_camera_calibrated(true);
+    // set_flag_scanner_calibrated(true);
+    // camera.set_flag_camera_calibrated(true);
 }
 
 void scanner::init() {
@@ -245,9 +245,8 @@ void scanner::imemit(std::string e, uint8_t* imbase64, std::string msg, size_t l
 
 
 void set_prop(const Napi::CallbackInfo& info) {
-    std::string jstr = info[0].As<Napi::String>().Utf8Value();
+    std::string jstr = info[0].As<Napi::String>().Utf8Value();    
     nlohmann::json j = nlohmann::json::parse(jstr);
-    // int code = j["code"].get<int>();
     std::string prop = j["prop"].get<std::string>();
 
     if(!prop.compare(PROP_DISPLAYVIDEO)) {
@@ -258,15 +257,34 @@ void set_prop(const Napi::CallbackInfo& info) {
                 !sc.get_flag_calibrating_scanner()&&
                 !sc.get_flag_scanning()) {
                     sc.camera.set_flag_display_video(val);
-                    nlohmann::json j;
-                    j["prop"] = PROP_DISPLAYVIDEO;
-                    j["value"] = val;
-                    sc.stremit(EV_PROPCHANGED, j.dump(), true);    
+                    nlohmann::json j0;
+                    j0["prop"] = PROP_DISPLAYVIDEO;
+                    j0["value"] = val;
+                    sc.stremit(EV_PROPCHANGED, j0.dump(), true);    
                 }
             };
 
             sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_SETPROP, comm)));
     }
+    else if(!prop.compare(PROP_SELECTEDCAMERA)) {
+            int id = j["value"]["id"].get<int>();
+            std::string name = j["value"]["name"].get<std::string>();
+            camera::camera_info cam_info{id,name};
+
+            std::cout<<"at hererere"<<std::endl;
+
+            auto comm = [cam_info]() {
+                sc.camera.set_selected_camera_info(cam_info);
+                nlohmann::json j0;
+                j0["prop"] = PROP_SELECTEDCAMERA;
+                j0["id"] = cam_info.id;
+                j0["name"] = cam_info.name;
+                sc.stremit(EV_PROPCHANGED, j0.dump(), true);    
+            };
+
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_SETPROP, comm)));
+    }
+
     // else if(!prop.compare(PROP_SCANNERCALIBRATED)) {
     //         bool val = j["value"].get<bool>();
 
@@ -302,7 +320,6 @@ Napi::Value get_prop(const Napi::CallbackInfo& info) {
 
 
     auto comm = [ctx, prop]() {
-        std::cout<<prop<<std::endl;
 
         auto get_prop = [ctx, prop](Napi::Env env, Napi::Function jscb) {
             if(!prop.compare(PROP_DISPLAYVIDEO)) {
@@ -318,7 +335,7 @@ Napi::Value get_prop(const Napi::CallbackInfo& info) {
                 ctx->deferred.Resolve(Napi::Number::New(ctx->deferred.Env(), sc.camera.camera_calibration.n_captures));
             }
             else if(!prop.compare(PROP_CAMERALIST)) {
-                auto cam_list=camera::get_camera_list();
+                auto cam_list=camera::get_camera_info_list();
                 nlohmann::json jarray = nlohmann::json::array();
 
                 for(int i=0;i<cam_list.size();i++) {
@@ -330,7 +347,6 @@ Napi::Value get_prop(const Napi::CallbackInfo& info) {
 
                 nlohmann::json j;
                 j["data"] = jarray;
-                                std::cout<<j.dump()<<std::endl;
 
                 ctx->deferred.Resolve(Napi::String::New(ctx->deferred.Env(), j.dump()));
             }

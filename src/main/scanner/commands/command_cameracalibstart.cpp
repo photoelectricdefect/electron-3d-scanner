@@ -43,6 +43,16 @@ void command_cameracalibstart::execute()
             world_board_points.push_back(board_points);
         }
 
+        // auto imupdate = [](const scanner* ctx,const cv::Mat frame) {
+        //     boost::unique_lock<boost::mutex> lock(ctx->camera.mtx_video_alive);
+
+        //     if (ctx->camera.video_alive) {
+        //         uint8_t* data;
+        //         auto len = cv_helpers::mat2buffer(frame, data);
+        //         ctx->imemit(EV_IMUPDATE, data, len, true);
+        //     }
+        // };
+
         cv::Mat frame, gray;
         bool read_success=false;
         int current_captures = 0;
@@ -51,14 +61,9 @@ void command_cameracalibstart::execute()
             boost::this_thread::sleep_for(boost::chrono::milliseconds(delay_open_capture_ms));
 
             if(!read_success) {
-                int videoid=camera::get_videoid("USB 2.0 Camera: USB Camera");
-
-                if(videoid==-1) {
-                    std::cerr<<"could not detect USB camera"<<std::endl;
-                    continue;
-                }
-
-                ctx->camera.video_capture.open(videoid);
+                camera::camera_info selected_camera_info;
+                ctx->camera.get_selected_camera_info(selected_camera_info);
+                ctx->camera.video_capture.open(selected_camera_info.id);
                 ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 1600);          
                 ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 1200);         
 
@@ -71,21 +76,20 @@ void command_cameracalibstart::execute()
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
                 int keycode=-1;                
-                nlohmann::json* message;
-                ctx->camera.try_get_message_thread_camera(message);
+                nlohmann::json message;
+                bool message_recieved=ctx->camera.try_get_message_thread_camera(message);
 
-                if(message!=nullptr) {
-                    std::string type=(*message)["type"];
+                if(message_recieved) {
+                    std::string type=message["type"];
 
                     if(!type.compare("keyup")) {
-                        keycode=(*message)["keycode"].get<int>();                                
+                        keycode=message["keycode"].get<int>();                                
                     }
                 }
                 
                 read_success=ctx->camera.video_capture.read(frame);
 
                 if (!read_success) {
-                    std::cerr << "failed to read frame" << std::endl;
                     continue;
                 }
 
@@ -108,17 +112,9 @@ void command_cameracalibstart::execute()
                     cv::drawChessboardCorners(frame, pattern_size, cv::Mat(image_points), found);
                 }
 
-                // auto imupdate = [ctx=ctx, &frame]() {
-                //     boost::unique_lock<boost::mutex> lock(ctx->camera.mtx_video_alive);
-
-                //     if (ctx->camera.video_alive) {
-                //         uint8_t* data;
-                //         auto len = cv_helpers::mat2buffer(frame, data);
-                //         ctx->imemit(EV_IMUPDATE, data, len, true);
-                //     }
-                // };
-
-                // imupdate();
+                uint8_t* data;
+                auto len = cv_helpers::mat2buffer(frame, data);
+                ctx->imemit(EV_IMUPDATE, data, len, true);
             }
             catch (boost::thread_interrupted&) {}
         }
@@ -134,29 +130,34 @@ void command_cameracalibstart::execute()
 
             std::cout<<"rmsRO:"<<cv::calibrateCameraRO(world_board_points, image_board_points, frame.size(), i_fixed_point,K, D, rvecs, tvec,new_world_board_points)<<std::endl;
             
-            boost::unique_lock<boost::mutex> lock_KD(ctx->camera.camera_calibration.mutex_KD);
+            boost::unique_lock<boost::mutex> lock_camera_calibrated(ctx->camera.mutex_camera_calibrated);
             ctx->camera.camera_calibration.K=K;
             ctx->camera.camera_calibration.D=D;
-            lock_KD.unlock();
+            ctx->camera.camera_calibrated=true;
+            lock_camera_calibrated.unlock();
 
-            std::cout<<"KCAM:"<<K<<std::endl;
-            std::cout<<"DCAM:"<<D<<std::endl;
+            // std::cout<<"KCAM:"<<K<<std::endl;
+            // std::cout<<"DCAM:"<<D<<std::endl;
             ctx->camera.camera_calibration.save("cameracalib.json");
-            ctx->camera.set_flag_camera_calibrated(true);
+            // ctx->camera.set_flag_camera_calibrated(true);
             nlohmann::json j;
             j["prop"] = "cameracalibrated";
             j["value"] = true;
-            ctx->stremit(EV_PROPCHANGED, j.dump(), true);
-        
-            ctx->thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstop(ctx, COMM_CAMERACALIBSTOP)));
+            ctx->stremit(EV_PROPCHANGED, j.dump(), true);        
         }
+    
+        ctx->thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstop(ctx, COMM_CAMERACALIBSTOP)));
     };
 
+    ctx->camera.set_flag_display_video(true);
     ctx->camera.set_flag_calibrating_camera(true);
     ctx->camera.set_flag_thread_camera_alive(true);
     ctx->camera.thread_camera = boost::thread{ fn_camera };
     nlohmann::json j;
     j["prop"] = PROP_CALIBRATINGCAMERA;
+    j["value"] = true;
+    ctx->stremit(EV_PROPCHANGED, j.dump(), true);
+    j["prop"] = PROP_DISPLAYVIDEO;
     j["value"] = true;
     ctx->stremit(EV_PROPCHANGED, j.dump(), true);
     ctx->stremit(EV_CAMERACALIBSTART, "", true);

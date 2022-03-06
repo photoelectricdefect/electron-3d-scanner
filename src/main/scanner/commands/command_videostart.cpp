@@ -9,6 +9,16 @@
 namespace scanner {
     const int delay_open_capture_ms=5000;
 
+    bool wait_on_video_conditions(scanner* ctx) {
+        boost::unique_lock<boost::mutex> lock_video_conditions(ctx->camera.mutex_video_conditions);
+
+        while(!ctx->camera.display_video||ctx->camera.calibrating_camera) {
+            ctx->camera.condition_video_conditions.wait(lock_video_conditions);
+        }
+
+        return true;
+    }
+
     command_videostart::command_videostart(scanner* ctx, int code) : command(ctx, code) {}
 
     void command_videostart::execute() {
@@ -16,77 +26,89 @@ namespace scanner {
         // ctx->camera.set_flag_display_video(true);
 
         auto fn_video = [ctx=ctx]() {
-            bool read_success=false;
+            bool video_device_open=false;
 
-            while(ctx->camera.get_flag_thread_video_alive()) {
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(delay_open_capture_ms));
-                boost::unique_lock<boost::mutex> lock_video_capture0(ctx->camera.mutex_video_capture);
+            const auto state_open_video_device = [ctx=ctx,delay_open_capture_ms](bool& video_device_open) {
+                try {
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(delay_open_capture_ms));
+                    boost::unique_lock<boost::mutex> lock_video_capture(ctx->camera.mutex_video_capture);
 
-                if (!read_success)
-                {
-                    int videoid=camera::get_videoid("USB 2.0 Camera: USB Camera");
+                    if (!video_device_open)
+                    {                    
+                        camera::camera_info selected_camera_info;
+                        ctx->camera.get_selected_camera_info(selected_camera_info);
 
-                    if(videoid==-1) {
-                        std::cerr<<"could not detect USB camera"<<std::endl;
-                        continue;
+                        std::cout<<"vidoeidididi"<<selected_camera_info.id<<std::endl;
+                        std::cout<<"nnnname"<<selected_camera_info.name<<std::endl;
+
+                        ctx->camera.video_capture.open(selected_camera_info.id);
+                        ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);          
+                        ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
+                        video_device_open=ctx->camera.video_capture.isOpened();
                     }
 
-                    ctx->camera.video_capture.open(videoid);
-                    ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);          
-                    ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
-
-                    if (!ctx->camera.video_capture.isOpened()) {
+                    lock_video_capture.unlock();
+                
+                    if (!video_device_open) {
                         std::cerr << "error opening camera" << std::endl;
-                        continue;
                     }
                 }
+                catch(boost::thread_interrupted &ex) {
+                    video_device_open=false;
+                }
+            };
 
-                lock_video_capture0.unlock();
-
+            const auto state_grab_frames = [ctx=ctx](bool& video_device_open) {
                 try {
-                    boost::unique_lock<boost::mutex> lock_display_video(ctx->camera.mutex_display_video);
-                    
-                    while(!ctx->camera.display_video)
-                    {
-                        ctx->camera.condition_display_video.wait(lock_display_video);
-                    }
-
-                    lock_display_video.unlock();
-                    cv::Mat frame;
-
-                    while (ctx->camera.get_flag_display_video())
+                    while (wait_on_video_conditions(ctx))
                     {
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(1000 / FPS_30));
-                        boost::unique_lock<boost::mutex> lock_video_capture1(ctx->camera.mutex_video_capture);
-                        read_success=ctx->camera.video_capture.read(frame);
+                        boost::unique_lock<boost::mutex> lock_video_conditions(ctx->camera.mutex_video_conditions);
 
-                        if (!read_success) {
-                            std::cerr << "failed to read frame" << std::endl;
+                        std::cout<<"grabbing frames"<<std::endl;
+
+                        if(!ctx->camera.display_video||ctx->camera.calibrating_camera) {
+                            continue;
+                        }
+
+                        cv::Mat frame;
+                        boost::unique_lock<boost::mutex> lock_video_capture(ctx->camera.mutex_video_capture);
+                        video_device_open=ctx->camera.video_capture.read(frame);
+                        lock_video_capture.unlock();
+
+                        if (!video_device_open) {
                             break;
                         }
 
-                        lock_video_capture1.unlock();
+                        cv::Mat frame_out;
+                        
+                        {
+                            boost::unique_lock<boost::mutex> lock_camera_calibrated(ctx->camera.mutex_camera_calibrated);
 
-                        if(ctx->get_flag_calibrating_scanner()||ctx->get_flag_scanning()) {
-                            cv::Mat undistorted;
-
-                            boost::unique_lock<boost::mutex> lock_KD(ctx->camera.camera_calibration.mutex_KD);
-                            //TODO: lock K and D because can be changed while running if camera is calibrated
-                            cv::undistort(frame, undistorted, ctx->camera.camera_calibration.K, ctx->camera.camera_calibration.D);
-                            lock_KD.unlock();
-
-                            uint8_t *data;
-                            auto len = cv_helpers::mat2buffer(undistorted, data);
-                            ctx->imemit(EV_IMUPDATE, data, len, true);
+                            if(ctx->camera.camera_calibrated) {
+                                cv::undistort(frame, frame_out, ctx->camera.camera_calibration.K, ctx->camera.camera_calibration.D);
+                            }
+                            else {
+                                frame_out=frame;
+                            }
                         }
-                        else {
-                            uint8_t* data;
-                            auto len = cv_helpers::mat2buffer(frame, data);
-                            ctx->imemit(EV_IMUPDATE, data, len, true);
-                        }
+                                                                        
+                        uint8_t* data;
+                        auto len = cv_helpers::mat2buffer(frame_out, data);
+                        ctx->imemit(EV_IMUPDATE, data, len, true);
                     }
                 }
-                catch (boost::thread_interrupted &) {}
+                catch (boost::thread_interrupted &ex) {
+                    video_device_open=false;
+                }
+            };
+
+            while(ctx->camera.get_flag_thread_video_alive()) {
+                state_open_video_device(video_device_open);
+                
+                if(video_device_open) {
+                    state_grab_frames(video_device_open);
+                }
             }
         };
 
