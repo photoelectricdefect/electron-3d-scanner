@@ -6,6 +6,9 @@ namespace scanner {
     command_scannercalibstop::command_scannercalibstop(scanner* ctx, int code) : command(ctx, code) {};
 
     void command_scannercalibstop::execute() {
+        command_videocapturestop comm_video_capture_stop(ctx,COMM_VIDEOCAPTURESTOP);
+        comm_video_capture_stop.execute();
+
         ctx->set_flag_calibrating_scanner(false);
         ctx->camera.set_flag_thread_camera_alive(false);
         ctx->camera.thread_camera.interrupt();

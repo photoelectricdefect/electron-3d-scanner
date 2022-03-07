@@ -65,7 +65,7 @@ namespace scanner {
         // j["prop"] = PROP_DISPLAYVIDEO;
         // j["value"] = true;
         // ctx->stremit(EV_PROPCHANGED, j.dump(), true);
-        ctx->stremit(EV_VIDEOCAPTURESTART, "", true);
         ctx->camera.thread_video_capture = boost::thread{fn_video_capture};
+        ctx->stremit(EV_VIDEOCAPTURESTART, "", true);
     }
 }

@@ -48,9 +48,7 @@ namespace scanner {
                         std::cerr << "error opening camera" << std::endl;
                     }
                 }
-                catch(boost::thread_interrupted &ex) {
-                    ctx->camera.set_flag_video_open(false);
-                }
+                catch(boost::thread_interrupted &ex) {}
             }
         };
 

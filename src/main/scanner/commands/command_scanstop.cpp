@@ -9,7 +9,10 @@ namespace scanner {
     command_scanstop::command_scanstop(scanner* ctx, int code) : command(ctx, code) {}
 
     void command_scanstop::execute() {
-        ctx->set_flag_calibrating_scanner(false);
+        command_videocapturestop comm_video_capture_stop(ctx,COMM_VIDEOCAPTURESTOP);
+        comm_video_capture_stop.execute();
+        
+        ctx->set_flag_scanning(false);
         ctx->camera.set_flag_thread_camera_alive(false);
         ctx->camera.thread_camera.interrupt();
         ctx->camera.thread_camera.join();

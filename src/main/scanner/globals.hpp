@@ -62,8 +62,12 @@ namespace scanner
        const int
            COMM_MAINSTART = 0,
            COMM_MAINSTOP = 1,
-           COMM_VIDEOSTART = 2,
-           COMM_VIDEOSTOP = 3,
+
+           COMM_VIDEOCAPTURESTART = 2,
+           COMM_VIDEOCAPTURESTOP = 3,
+           COMM_VIDEOOPENSTART = 22,
+           COMM_VIDEOOPENSTOP = 23,
+
            COMM_SCANSTART = 12,
            COMM_SCANSTOP = 13,
            COMM_LOADMODEL = 5,

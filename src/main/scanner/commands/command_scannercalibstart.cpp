@@ -821,13 +821,15 @@ namespace scanner
     // TODO: Think about whether automatic calibration is necessary instead of manual by capturing images by user
     void command_scannercalibstart::execute()
     {
-        ctx->camera.set_flag_display_video(true);        
+        command_videocapturestart comm_video_capture_start(ctx,COMM_VIDEOCAPTURESTART);
+        comm_video_capture_start.execute();
+
         ctx->set_flag_calibrating_scanner(true);
         ctx->camera.set_flag_thread_camera_alive(true);
-        auto K = ctx->camera.camera_calibration.K;
-        auto D = ctx->camera.camera_calibration.D;
+        using K = ctx->camera.camera_calibration.K;
+        using D = ctx->camera.camera_calibration.D;
 
-        auto fncamera = [ctx=ctx,K,D]()
+        auto fn_camera = [ctx=ctx,K,D]()
         {
             std::vector<cv::Point3d> world_board_points;
             auto pattern_size = ctx->scanner_calibration.pattern_size;
@@ -1219,12 +1221,9 @@ namespace scanner
             }
         };
 
-        ctx->camera.thread_camera = boost::thread{fncamera};
+        ctx->camera.thread_camera = boost::thread{fn_camera};
         nlohmann::json j;
         j["prop"] = PROP_CALIBRATINGSCANNER;
-        j["value"] = true;
-        ctx->stremit(EV_PROPCHANGED, j.dump(), true);
-        j["prop"] = PROP_DISPLAYVIDEO;
         j["value"] = true;
         ctx->stremit(EV_PROPCHANGED, j.dump(), true);
         ctx->stremit(EV_SCANNERCALIBSTART, "", true);
