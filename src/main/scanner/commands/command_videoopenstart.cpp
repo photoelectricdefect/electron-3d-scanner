@@ -9,14 +9,14 @@
 namespace scanner {
     const int delay_open_video_ms=5000;
 
-    bool wait_on_video_open(scanner* ctx) {
+    camera::camera_info wait_on_conditions(scanner* ctx) {
         boost::unique_lock<boost::mutex> lock(ctx->camera.mutex_video_open);
 
-        while(ctx->camera.video_open) {
+        while(ctx->camera.video_open||ctx->camera.selected_camera_info==nullptr) {
             ctx->camera.condition_video_open.wait(lock);
         }
 
-        return true;
+        return *ctx->camera.selected_camera_info;
     }
 
     command_videoopenstart::command_videoopenstart(scanner* ctx, int code) : command(ctx, code) {}
@@ -27,23 +27,33 @@ namespace scanner {
         auto fn_video_open = [ctx=ctx]() {
             while(ctx->camera.get_flag_thread_video_open_alive()) {
                 try {
-                    wait_on_video_open(ctx);
+                    auto selected_camera_info=wait_on_conditions(ctx);
                     boost::unique_lock<boost::mutex> lock_video_capture(ctx->camera.mutex_video_capture);
 
-                    if (!ctx->camera.video_open)
-                    {                    
-                        camera::camera_info selected_camera_info;
-                        ctx->camera.get_selected_camera_info(selected_camera_info);
+                    std::cout<<"vidoeidididi"<<selected_camera_info.id<<std::endl;
+                    std::cout<<"nnnname"<<selected_camera_info.name<<std::endl;
 
-                        // std::cout<<"vidoeidididi"<<selected_camera_info.id<<std::endl;
-                        // std::cout<<"nnnname"<<selected_camera_info.name<<std::endl;
+                    ctx->camera.video_capture.open(selected_camera_info.id);
+                    ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);          
+                    ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+                    boost::unique_lock<boost::mutex> lock_video_open(ctx->camera.mutex_video_open);         
+                    ctx->camera.video_open=ctx->camera.video_capture.isOpened();
 
-                        ctx->camera.video_capture.open(selected_camera_info.id);
-                        ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);          
-                        ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
-                        ctx->camera.set_flag_video_open(ctx->camera.video_capture.isOpened());
-                    }
-                
+                    // if (!ctx->camera.video_open)
+                    // {                    
+                    //     camera::camera_info selected_camera_info;
+                    //     ctx->camera.get_selected_camera_info(selected_camera_info);
+
+                    //     // std::cout<<"vidoeidididi"<<selected_camera_info.id<<std::endl;
+                    //     // std::cout<<"nnnname"<<selected_camera_info.name<<std::endl;
+
+                    //     ctx->camera.video_capture.open(selected_camera_info.id);
+                    //     ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);          
+                    //     ctx->camera.video_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);         
+                    //     ctx->camera.set_flag_video_open(ctx->camera.video_capture.isOpened());
+                    // }
+
+                    //delete                
                     if (!ctx->camera.video_open) {
                         std::cerr << "error opening camera" << std::endl;
                     }

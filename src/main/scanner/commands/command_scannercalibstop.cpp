@@ -1,4 +1,5 @@
 #include <commands/command_scannercalibstop.hpp>
+#include <commands/command_videocapturestop.hpp>
 #include <boost/thread.hpp>
 #include <json.hpp>
 

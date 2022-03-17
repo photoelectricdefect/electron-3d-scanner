@@ -67,7 +67,7 @@ void scanner_calibration::load_points(std::string fpath,std::vector<double>& dir
     }
 }
 
-void scanner_calibration::create_calibration_file(std::string fpath) {
+void scanner_calibration::create_calibration_file(const std::string& fpath) {
     std::ofstream file(fpath);
     
     if(!file.is_open())
@@ -88,7 +88,7 @@ void scanner_calibration::create_calibration_file(std::string fpath) {
     file.close();
 }
 
-void scanner_calibration::save(std::string fpath) {
+void scanner_calibration::save(const std::string& fpath) {
     nlohmann::json j;
     std::fstream file(fpath,std::ios::in|std::ios::out);
     
@@ -120,7 +120,7 @@ void scanner_calibration::save(std::string fpath) {
     file.close();
 }
 
-void scanner_calibration::load(std::string fpath) {
+void scanner_calibration::load(const std::string& fpath) {
         std::ifstream file(fpath);
         
         if(!file.is_open())

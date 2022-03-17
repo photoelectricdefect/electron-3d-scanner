@@ -19,6 +19,9 @@ using scanner_calibration_ = scanner::scanner_calibration;
 
 namespace scanner {
     class scanner {
+        private:
+            void load_config(const std::string& fpath);
+            void create_config_file(const std::string& fpath);
         public:            
             boost::thread thread_main;
             

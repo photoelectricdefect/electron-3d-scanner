@@ -1,5 +1,6 @@
 #include <commands/command_scannercalibstart.hpp>
 #include <commands/command_scannercalibstop.hpp>
+#include <commands/command_videocapturestart.hpp>
 #include <helpers/cv_helpers.hpp>
 #include <helpers/math_helpers.hpp>
 #include <Eigen/Dense>
@@ -826,10 +827,11 @@ namespace scanner
 
         ctx->set_flag_calibrating_scanner(true);
         ctx->camera.set_flag_thread_camera_alive(true);
-        using K = ctx->camera.camera_calibration.K;
-        using D = ctx->camera.camera_calibration.D;
+        
+        // using K = ctx->camera.camera_calibration.K;
+        // using D = ctx->camera.camera_calibration.D;
 
-        auto fn_camera = [ctx=ctx,K,D]()
+        auto fn_camera = [ctx=ctx,K=ctx->camera.camera_calibration.K,D=ctx->camera.camera_calibration.D]()
         {
             std::vector<cv::Point3d> world_board_points;
             auto pattern_size = ctx->scanner_calibration.pattern_size;
@@ -986,8 +988,15 @@ namespace scanner
                                     cv::Mat frame, frameu, gray;
                                     
                                     boost::unique_lock<boost::mutex> lock_video_capture0(ctx->camera.mutex_video_capture);
-                                    ctx->camera.video_capture.read(frame);
+                                    // ctx->camera.video_capture.read(frame);
+
+                                    if(!ctx->camera.video_capture.read(frame)) {
+                                        ctx->camera.notify_video_closed();
+                                        continue;
+                                    }
+
                                     lock_video_capture0.unlock();
+
 
                                     if (frame.empty())
                                         continue;
@@ -1039,7 +1048,14 @@ namespace scanner
                                 }
 
                                 boost::unique_lock<boost::mutex> lock_video_capture1(ctx->camera.mutex_video_capture);
-                                ctx->camera.video_capture.read(imnolaser);
+                                // ctx->camera.video_capture.read(imnolaser);
+                                
+                                if(!ctx->camera.video_capture.read(imnolaser)) {
+                                    ctx->camera.notify_video_closed();
+                                    continue;
+                                }
+
+
                                 lock_video_capture1.unlock();
 
                                 if (imnolaser.empty())
@@ -1063,7 +1079,14 @@ namespace scanner
                                 }
 
                                 boost::unique_lock<boost::mutex> lock_video_capture2(ctx->camera.mutex_video_capture);
-                                ctx->camera.video_capture.read(imlaser);
+                                // ctx->camera.video_capture.read(imlaser);
+                                
+                                if(!ctx->camera.video_capture.read(imlaser)) {
+                                    ctx->camera.notify_video_closed();
+                                    continue;
+                                }
+
+
                                 lock_video_capture2.unlock();
 
                                 if (imlaser.empty())
@@ -1173,8 +1196,8 @@ namespace scanner
 
                                     auto imupdate = [ctx=ctx, &imlaser, id]()
                                     {
-                                        if (ctx->camera.get_flag_display_video())
-                                        {
+                                        // if (ctx->camera.get_flag_display_video())
+                                        // {
                                             cv::Mat thumbnail;
                                             cv::resize(imlaser, thumbnail, cv::Size(213, 120));
                                             uint8_t *data0;
@@ -1190,7 +1213,7 @@ namespace scanner
                                             j["size"] = "large";
                                             j["id"] = id;
                                             ctx->imemit(EV_SCANNERCALIBDATA, data1, j.dump(), len1, true);
-                                        }
+                                        // }
                                     };
 
                                     imupdate();

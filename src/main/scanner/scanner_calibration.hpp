@@ -36,9 +36,9 @@ namespace scanner
 
         scanner_calibration();
 
-        void create_calibration_file(std::string fpath);
-        void load(std::string fpath);
-        void save(std::string fpath);
+        void create_calibration_file(const std::string& fpath);
+        void load(const std::string& fpath);
+        void save(const std::string& fpath);
         void save_points(std::string fpath, const std::vector<double> &direction, const std::vector<double> &source, const std::vector<std::vector<double>> &orbit_points, const std::vector<std::vector<double>> &center_points, int npoints);
         void load_points(std::string fpath, std::vector<double> &direction, std::vector<double> &source, std::vector<std::vector<double>> &orbit_points, std::vector<std::vector<double>> &center_points, int &npoints);
         Eigen::Matrix4d get_axis_rigid_body_transform();

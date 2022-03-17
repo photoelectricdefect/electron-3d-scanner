@@ -5,7 +5,7 @@
 namespace scanner {
     camera_calibration::camera_calibration() {};
 
-void camera_calibration::create_calibration_file(std::string fpath) {
+void camera_calibration::create_calibration_file(const std::string& fpath) {
     std::ofstream file(fpath);
     
     if(!file.is_open())
@@ -22,7 +22,7 @@ void camera_calibration::create_calibration_file(std::string fpath) {
     file.close();
 }
 
-void camera_calibration::save(std::string fpath) {
+void camera_calibration::save(const std::string& fpath) {
     nlohmann::json j;
     std::fstream file(fpath,std::ios::in|std::ios::out);
     
@@ -53,7 +53,7 @@ void camera_calibration::save(std::string fpath) {
     file.close();
 }       
 
-void camera_calibration::load(std::string fpath) {
+void camera_calibration::load(const std::string& fpath) {
         std::ifstream file(fpath);
         
         if(!file.is_open())

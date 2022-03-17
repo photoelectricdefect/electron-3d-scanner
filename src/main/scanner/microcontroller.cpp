@@ -3,9 +3,7 @@
 
 namespace scanner
 {
-
     microcontroller::microcontroller() {}
-    microcontroller::microcontroller(std::string devname_, unsigned int baud_) : devname(devname_), baud(baud_) {}
 
     void microcontroller::invoke_controller(std::shared_ptr<command> comm)
     {
@@ -20,7 +18,7 @@ namespace scanner
 
     void microcontroller::serial_open()
     {
-        serial_port.open(devname, baud);
+        serial_port.open(device_name, baud_rate);
     }
 
     void microcontroller::serial_close()

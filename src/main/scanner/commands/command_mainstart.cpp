@@ -1,5 +1,4 @@
 #include <commands/command_mainstart.hpp>
-#include <commands/command_videostop.hpp>
 #include <boost/thread.hpp>
 
 namespace scanner {
@@ -20,11 +19,17 @@ namespace scanner {
 
                             switch (comm->code)
                             {
-                                case COMM_VIDEOSTART:
-                                    if(ctx->camera.get_flag_thread_video_alive())  continue;
+                                case COMM_VIDEOCAPTURESTART:
+                                    if(ctx->camera.get_flag_thread_video_capture_alive())  continue;
                                     break;
-                                case COMM_VIDEOSTOP:
-                                    if(!ctx->camera.get_flag_thread_video_alive())  continue;
+                                case COMM_VIDEOCAPTURESTOP:
+                                    if(!ctx->camera.get_flag_thread_video_capture_alive())  continue;
+                                    break;
+                                case COMM_VIDEOOPENSTART:
+                                    if(ctx->camera.get_flag_thread_video_open_alive())  continue;
+                                    break;
+                                case COMM_VIDEOOPENSTOP:
+                                    if(!ctx->camera.get_flag_thread_video_open_alive())  continue;
                                     break;
                                 case COMM_CAMERACALIBSTART:
                                     if(ctx->camera.get_flag_thread_camera_alive())  continue;

@@ -1,6 +1,5 @@
 #include <commands/command_cameracalibstart.hpp>
 #include <commands/command_cameracalibstop.hpp>
-#include <commands/command_videostart.hpp>
 #include <commands/command_lambda.hpp>
 #include <helpers/cv_helpers.hpp>
 #include <opencv2/core.hpp>
@@ -149,7 +148,6 @@ void command_cameracalibstart::execute()
         ctx->thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstop(ctx, COMM_CAMERACALIBSTOP)));
     };
 
-    ctx->camera.set_flag_display_video(true);
     ctx->camera.set_flag_calibrating_camera(true);
     ctx->camera.set_flag_thread_camera_alive(true);
     ctx->camera.thread_camera = boost::thread{ fn_camera };

@@ -19,8 +19,8 @@ namespace scanner
         bool thread_controller_alive;
         shared_queue<std::shared_ptr<command>> commandq;
         TimeoutSerial serial_port;
-        std::string devname = "/dev/ttyACM0";
-        unsigned int baud = 9600;
+        std::string device_name;
+        unsigned int baud_rate = 9600;
 
         enum flush_type
         {
@@ -30,7 +30,6 @@ namespace scanner
         };
 
         microcontroller();
-        microcontroller(std::string devname_, unsigned int baud_);
         void invoke_controller(std::shared_ptr<command> comm);
         bool get_flag_thread_controller_alive();
         void set_flag_thread_controller_alive(bool value);

@@ -32,10 +32,9 @@ namespace scanner {
 
                     cv::Mat frame;
                     boost::unique_lock<boost::mutex> lock_video_capture(ctx->camera.mutex_video_capture);
-                    bool video_device_open=ctx->camera.video_capture.read(frame)
-                    ctx->camera.set_flag_video_open(video_device_open);
                         
-                    if(!video_device_open) {
+                    if(!ctx->camera.video_capture.read(frame)) {
+                        ctx->camera.notify_video_closed();
                         continue;
                     }
 

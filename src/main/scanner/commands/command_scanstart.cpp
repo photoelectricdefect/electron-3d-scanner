@@ -1,4 +1,5 @@
 #include <commands/command_scanstart.hpp>
+#include <commands/command_videocapturestart.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
@@ -52,10 +53,10 @@ namespace scanner
 
         ctx->set_flag_scanning(true);
         ctx->camera.set_flag_thread_camera_alive(true);
-        using K = ctx->camera.camera_calibration.K;
-        using D = ctx->camera.camera_calibration.D;
+        // using K = ctx->camera.camera_calibration.K;
+        // using D = ctx->camera.camera_calibration.D;
 
-        auto fn_camera = [ctx=ctx,K,D]()
+        auto fn_camera = [ctx=ctx,K=ctx->camera.camera_calibration.K,D=ctx->camera.camera_calibration.D]()
         {
             //thread_video_alive
 
@@ -285,9 +286,20 @@ namespace scanner
                             }
 
                             cv::Mat imlaser, imnolaser;
+                           
+                            // boost::unique_lock<boost::mutex> lock_video_capture0(ctx->camera.mutex_video_capture);
+                            // ctx->camera.video_capture.read(imlaser);
+                            // lock_video_capture0.unlock();
+                           
                             boost::unique_lock<boost::mutex> lock_video_capture0(ctx->camera.mutex_video_capture);
-                            ctx->camera.video_capture.read(imlaser);
+                                
+                            if(!ctx->camera.video_capture.read(imlaser)) {
+                                ctx->camera.notify_video_closed();
+                                break;
+                            }
+
                             lock_video_capture0.unlock();
+                           
                             err = false;
                             ctx->controller.set_laser(0, 10, response, 2000, err);
 
@@ -298,7 +310,13 @@ namespace scanner
                             }
 
                             boost::unique_lock<boost::mutex> lock_video_capture1(ctx->camera.mutex_video_capture);
-                            ctx->camera.video_capture.read(imnolaser);
+                            // ctx->camera.video_capture.read(imnolaser);
+
+                            if(!ctx->camera.video_capture.read(imnolaser)) {
+                                ctx->camera.notify_video_closed();
+                                break;
+                            }
+
                             lock_video_capture1.unlock();
 
                             cv::Mat base_colors0[3];

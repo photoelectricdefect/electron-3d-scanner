@@ -5,8 +5,8 @@
 #include <commands/command.hpp>
 #include <commands/command_mainstart.hpp>
 #include <commands/command_mainstop.hpp>
-#include <commands/command_videostart.hpp>
-#include <commands/command_videostop.hpp>
+#include <commands/command_videocapturestart.hpp>
+#include <commands/command_videocapturestop.hpp>
 #include <commands/command_cameracalibstart.hpp>
 #include <commands/command_cameracalibstop.hpp>
 #include <commands/command_scannercalibstart.hpp>
@@ -19,6 +19,7 @@
 #include <commands/command_rotate.hpp>
 #include <commands/command_laserset.hpp>
 #include <filesystem>
+#include <fstream>
 
 #include <boost/thread.hpp>
 #include <globals.hpp>
@@ -40,9 +41,13 @@ void scanner::init() {
     if(!std::filesystem::exists(SCANNER_CALIBRATION_FILE)) {
         scanner_calibration.create_calibration_file(SCANNER_CALIBRATION_FILE);
     }
+    if(!std::filesystem::exists(CONFIG_FILE)) {
+        create_config_file(CONFIG_FILE);
+    }
 
     camera.camera_calibration.load(CAMERA_CALIBRATION_FILE);
     scanner_calibration.load(SCANNER_CALIBRATION_FILE);
+    load_config(CONFIG_FILE);
 
     // std::cout<<"K_camera: "<<camera.camera_calibration.K<<std::endl;
     // std::cout<<"D_camera: "<<camera.camera_calibration.D<<std::endl;
@@ -61,6 +66,51 @@ void scanner::init() {
     // std::cout<<"steps_per_calibration_image: "<<scanner_calibration.steps_per_calibration_image<<std::endl;
     // std::cout<<"n_captures: "<<scanner_calibration.n_captures<<std::endl;
     scconfig.load();
+}
+
+void scanner::create_config_file(const std::string& fpath) {
+    std::ofstream file(fpath);
+    
+    if(!file.is_open())
+    {
+        std::cerr<<"could not open config file for writing"<<std::endl;
+        return;
+    }
+    
+    nlohmann::json j;
+    j["serial_port"]="";
+    j["baud_rate"]=0;
+    file<<j.dump(1);
+    file.close();
+}
+
+void scanner::load_config(const std::string& fpath) {
+        std::ifstream file(fpath);
+        
+        if(!file.is_open())
+        {
+            std::cerr<<"could not open config file for reading"<<std::endl;
+            return;
+        }
+
+        nlohmann::json j;
+        file >> j;
+        file.close();
+    
+        std::string serial_port;
+        unsigned int baud_rate=0;
+
+        for (auto& item : j.items()) {
+            if(!item.key().compare("serial_port")) {
+                serial_port=item.value().get<std::string>();
+            }
+            else if(!item.key().compare("baud_rate")) {
+                baud_rate=item.value().get<unsigned int>();
+            }
+        }
+
+        controller.device_name=serial_port;
+        controller.baud_rate=baud_rate;
 }
 
 bool scanner::get_flag_calibrating_scanner() {
@@ -137,11 +187,11 @@ void send_command(const Napi::CallbackInfo& info) {
         case COMM_MAINSTOP:
             sc.thread_main_invoke(std::shared_ptr<command>(new command_mainstop(&sc, code)));        
             break;
-        case COMM_VIDEOSTART:
-            sc.thread_main_invoke(std::shared_ptr<command>(new command_videostart(&sc, code)));
+        case COMM_VIDEOCAPTURESTART:
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_videocapturestart(&sc, code)));
             break;
-        case COMM_VIDEOSTOP:
-            sc.thread_main_invoke(std::shared_ptr<command>(new command_videostop(&sc, code)));
+        case COMM_VIDEOCAPTURESTOP:
+            sc.thread_main_invoke(std::shared_ptr<command>(new command_videocapturestop(&sc, code)));
             break;
         case COMM_CAMERACALIBSTART:
             sc.thread_main_invoke(std::shared_ptr<command>(new command_cameracalibstart(&sc, code)));
@@ -249,24 +299,25 @@ void set_prop(const Napi::CallbackInfo& info) {
     nlohmann::json j = nlohmann::json::parse(jstr);
     std::string prop = j["prop"].get<std::string>();
 
-    if(!prop.compare(PROP_DISPLAYVIDEO)) {
-            bool val = j["value"].get<bool>();
+    // if(!prop.compare(PROP_DISPLAYVIDEO)) {
+    //         bool val = j["value"].get<bool>();
 
-            auto comm = [val]() {
-                if(!sc.camera.get_flag_calibrating_camera()&&
-                !sc.get_flag_calibrating_scanner()&&
-                !sc.get_flag_scanning()) {
-                    sc.camera.set_flag_display_video(val);
-                    nlohmann::json j0;
-                    j0["prop"] = PROP_DISPLAYVIDEO;
-                    j0["value"] = val;
-                    sc.stremit(EV_PROPCHANGED, j0.dump(), true);    
-                }
-            };
+    //         auto comm = [val]() {
+    //             if(!sc.camera.get_flag_calibrating_camera()&&
+    //             !sc.get_flag_calibrating_scanner()&&
+    //             !sc.get_flag_scanning()) {
+    //                 sc.camera.set_flag_display_video(val);
+    //                 nlohmann::json j0;
+    //                 j0["prop"] = PROP_DISPLAYVIDEO;
+    //                 j0["value"] = val;
+    //                 sc.stremit(EV_PROPCHANGED, j0.dump(), true);    
+    //             }
+    //         };
 
-            sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_SETPROP, comm)));
-    }
-    else if(!prop.compare(PROP_SELECTEDCAMERA)) {
+    //         sc.thread_main_invoke(std::shared_ptr<command>(new command_lambda<decltype(comm)>(&sc, COMM_SETPROP, comm)));
+    // }
+    
+    if(!prop.compare(PROP_SELECTEDCAMERA)) {
             int id = j["value"]["id"].get<int>();
             std::string name = j["value"]["name"].get<std::string>();
             camera::camera_info cam_info{id,name};
@@ -322,10 +373,11 @@ Napi::Value get_prop(const Napi::CallbackInfo& info) {
     auto comm = [ctx, prop]() {
 
         auto get_prop = [ctx, prop](Napi::Env env, Napi::Function jscb) {
-            if(!prop.compare(PROP_DISPLAYVIDEO)) {
-                ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.get_flag_display_video()));
-            }            
-            else if(!prop.compare(PROP_CAMERACALIBRATED)) {
+            // if(!prop.compare(PROP_DISPLAYVIDEO)) {
+            //     ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.get_flag_display_video()));
+            // }            
+            
+            if(!prop.compare(PROP_CAMERACALIBRATED)) {
                 ctx->deferred.Resolve(Napi::Boolean::New(ctx->deferred.Env(), sc.camera.get_flag_camera_calibrated()));
             }            
             else if(!prop.compare(PROP_SCANNERCALIBRATED)) {

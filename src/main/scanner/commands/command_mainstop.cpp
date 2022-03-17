@@ -16,12 +16,15 @@ namespace scanner {
             ctx->controller.thread_controller.interrupt();
             ctx->controller.thread_controller.join();            
 
-            ctx->camera.set_flag_thread_video_alive(false);        
-            ctx->camera.set_flag_display_video(false);        
-            ctx->camera.thread_video.interrupt();
-            ctx->camera.thread_video.join();            
+            ctx->camera.set_flag_thread_video_open_alive(false);        
+            ctx->camera.thread_video_open.interrupt();
+            ctx->camera.thread_video_open.join();            
 
-            ctx->stremit(EV_VIDEOSTOP, "", true);
+            ctx->camera.set_flag_thread_video_capture_alive(false);        
+            ctx->camera.thread_video_capture.interrupt();
+            ctx->camera.thread_video_capture.join();            
+
+            ctx->stremit(EV_VIDEOCAPTURESTOP, "", true);
             ctx->stremit(EV_CONTROLLERSTOP, "", true);
             ctx->stremit(EV_MAINSTOP, "", true);
         }
