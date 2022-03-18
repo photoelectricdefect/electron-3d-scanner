@@ -82,9 +82,9 @@ namespace scanner
            COMM_ROTATE = 20,
            COMM_TOGGLELASER = 21;
 
-    const std::string CAMERA_CALIBRATION_FILE="camera_calibration.json",
-                    SCANNER_CALIBRATION_FILE="scanner_calibration.json",
-                    CONFIG_FILE="config.json";
+    const std::string CAMERA_CALIBRATION_FILE="config/camera_calibration.json",
+                    SCANNER_CALIBRATION_FILE="config/scanner_calibration.json",
+                    CONFIG_FILE="config/config.json";
 }
 
 #endif

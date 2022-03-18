@@ -43,6 +43,8 @@ namespace scanner {
             scanner();
             void init();
             
+            void test_bt_controller();
+
             bool get_flag_calibrating_scanner();
             void set_flag_calibrating_scanner(bool value);
 

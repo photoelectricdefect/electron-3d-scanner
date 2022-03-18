@@ -96,7 +96,7 @@ namespace scanner
             axis_source_vector.push_back(ctx->scanner_calibration.rotation_axis_origin(1));
             axis_source_vector.push_back(ctx->scanner_calibration.rotation_axis_origin(2));
 
-            const int delay_rotation=2300;
+            const int DELAY_ROTATION=2300;
 
             auto pattern_size = ctx->scanner_calibration.pattern_size;
             int patternh = ctx->scanner_calibration.pattern_size.height,
@@ -378,7 +378,7 @@ namespace scanner
                             j["colors"] = object_point_colors;
                             ctx->stremit(EV_SCANDATA, j.dump(), true);
                             err = false;
-                            ctx->controller.rotate(ctx->scconfig.rotation_direction, 1,delay_rotation, response, delay_rotation+1000, err);
+                            ctx->controller.rotate(ctx->scconfig.rotation_direction, 1,DELAY_ROTATION, response, DELAY_ROTATION+1000, err);
                         }
                     }
 

@@ -38,12 +38,17 @@ String read_line() {
   memset(&line,0,MAX_LINE_LEN);
   char c='\0';
   int pos=0;
-  
-  while(SerialBT.available()&&c!='\n'){
-    c=SerialBT.read();
-    line[pos]=c;
-    pos++;
+
+  while(c!='\r') {
+    if(SerialBT.available()){
+      c=SerialBT.read();
+      line[pos]=c;
+      pos++;
+    }
+    delay(1);    
   }
+
+  Serial.println(String(line));
 
   return String(line);
 }
@@ -88,7 +93,7 @@ void loop() {
     json_response["errcode"]=ERR_OK;
     String output;
     serializeJson(json_response, output);  
-    SerialBT.println(output);
+    SerialBT.print(output+"\n");
   }
   else if(name.equals(LASER)) {
     int state = json_command["state"].as<int>();
@@ -104,7 +109,7 @@ void loop() {
     json_response["errcode"]=ERR_OK;
     String output;
     serializeJson(json_response, output);  
-    SerialBT.println(output);  
+    SerialBT.print(output+"\n");  
   }
    
   delay(10);

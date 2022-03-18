@@ -34,6 +34,18 @@ scanner::scanner() {
     // camera.set_flag_camera_calibrated(true);
 }
 
+void scanner::test_bt_controller() {
+    nlohmann::json response;
+    bool err;
+    controller.rotate(scconfig.rotation_direction, 1,200, response, 1000+1000, err);
+
+    // std::cout<<"controller name: "<<controller.device_name<<std::endl;
+    // std::cout<<"controller baud rate: "<<controller.baud_rate<<std::endl;
+
+    std::cout<<"err controller: "<<err<<std::endl;
+    std::cout<<"test response controller: "<<response.dump()<<std::endl;
+}
+
 void scanner::init() {
     if(!std::filesystem::exists(CAMERA_CALIBRATION_FILE)) {
         camera.camera_calibration.create_calibration_file(CAMERA_CALIBRATION_FILE);
@@ -109,8 +121,7 @@ void scanner::load_config(const std::string& fpath) {
             }
         }
 
-        controller.device_name=serial_port;
-        controller.baud_rate=baud_rate;
+        controller.configure_serial_port(serial_port,baud_rate);
 }
 
 bool scanner::get_flag_calibrating_scanner() {
@@ -323,6 +334,8 @@ void set_prop(const Napi::CallbackInfo& info) {
             camera::camera_info cam_info{id,name};
 
             std::cout<<"at hererere"<<std::endl;
+            
+            sc.test_bt_controller();
 
             auto comm = [cam_info]() {
                 sc.camera.set_selected_camera_info(cam_info);

@@ -16,124 +16,84 @@ namespace scanner
         commandq.condition.notify_one();
     }
 
-    void microcontroller::serial_open()
-    {
-        serial_port.open(device_name, baud_rate);
+
+    void microcontroller::configure_serial_port(const std::string& device_name, const unsigned int baud_rate) {
+        _device_name=device_name;
+        _baud_rate=baud_rate;
+        _serial_port.setPort(_device_name);
+        _serial_port.setBaudrate(_baud_rate);
+        _is_serial_port_configured=true;
     }
 
-    void microcontroller::serial_close()
+    void microcontroller::send_message(std::string msg, nlohmann::json &response, int timeoutms, bool &err)
     {
-        serial_port.close();
-    }
-
-    std::string microcontroller::serial_readln()
-    {
-        return serial_port.readStringUntil("\n");
-    }
-
-    void microcontroller::serial_write_string(std::string str)
-    {
-        serial_port.writeString(str);
-    }
-
-    void microcontroller::serial_set_timeout(int timeoutms)
-    {
-        serial_port.setTimeout(boost::posix_time::milliseconds(timeoutms));
-    }
-
-    bool microcontroller::serial_is_open()
-    {
-        return serial_port.isOpen();
-    }
-
-    // https://stackoverflow.com/questions/22581315/how-to-discard-data-as-it-is-sent-with-boostasio
-    // boost has no wrapper for flushing so this should only work on linux, FIX
-    void microcontroller::serial_flush(flush_type ftype, boost::system::error_code &error)
-    {
-        if (0 == ::tcflush(serial_port.get_port()->lowest_layer().native_handle(), ftype))
+        if(!_is_serial_port_configured)
         {
-            error = boost::system::error_code();
+            return;
         }
-        else
-        {
-            error = boost::system::error_code(errno,
-                                              boost::asio::error::get_system_category());
-        }
-    }
 
-    void microcontroller::send_message(std::string msg, nlohmann::json &response, int timeout, bool &err)
-    {
         try
         {
-            if (!serial_is_open())
+            if (!_serial_port.isOpen())
             {
-                serial_open();
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(1000));
+                _serial_port.open();
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(_DELAY_PORT_OPEN_MS));
             }
 
-            // std::cout<<"sent to controler"<<std::endl;
+            _serial_port.flush();
+            auto timeout_write=serial::Timeout::simpleTimeout(timeoutms);
+            _serial_port.setTimeout(timeout_write);
+            auto t0 = boost::posix_time::microsec_clock::local_time();
+            _serial_port.write(msg + "\r");
+            auto t1 = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration dt=t1-t0;
+            int dt_ms=dt.total_milliseconds();
 
-            boost::system::error_code ferr;
-            serial_flush(microcontroller::flush_io, ferr);
+            if(dt_ms>=timeoutms) {
+                err=true;
+                return;
+            }
 
-            if (ferr)
-                BOOST_THROW_EXCEPTION(std::runtime_error(ferr.message()));
-
-            serial_write_string(msg + "\r");
-            serial_set_timeout(timeout);
-            response = serial_readln();
+            auto timeout_read=serial::Timeout::simpleTimeout(timeoutms-dt_ms);
+            _serial_port.setTimeout(timeout_read);
+            std::string string_response;
+            _serial_port.readline(string_response);
+            response=string_response;
         }
-        catch (boost::system::system_error &e)
+        catch (const serial::IOException &e)
         {
             err = true;
-            std::cerr << boost::diagnostic_information(e);
+            std::cerr << e.what();
         }
-        catch (timeout_exception &e)
+        catch (const serial::SerialException &e)
         {
             err = true;
-            std::cerr << boost::diagnostic_information(e);
+            std::cerr << e.what();
         }
-        catch (std::exception &e)
+        catch (serial::PortNotOpenedException &e)
         {
             err = true;
-            std::cerr << boost::diagnostic_information(e);
+            std::cerr << e.what();
         }
-    }
-
-    std::string microcontroller::format(std::string identifier, std::string value)
-    {
-        return identifier + ":" + value + ";";
-    }
-
-    std::string microcontroller::format(std::string identifier, int value)
-    {
-        std::ostringstream s;
-        s << identifier << ":" << value << ";";
-        return s.str();
-    }
-
-    std::string microcontroller::format(std::string identifier, float value)
-    {
-        std::ostringstream s;
-        s << identifier << ":" << value << ";";
-        return s.str();
-    }
-
-    std::string microcontroller::format(std::string identifier)
-    {
-        return identifier + ";";
     }
 
     void microcontroller::set_laser(int state, int delay, nlohmann::json &response, int timeout, bool &err)
-    {
-        auto msg = "laser;" + microcontroller::format("state", state) + microcontroller::format("delay", delay);
-        send_message(msg, response, timeout, err);
+    {        
+        nlohmann::json message;
+        message["name"]="laser";
+        message["state"]=state;
+        message["delay"]=delay;
+        send_message(message.dump(), response, timeout, err);
     }
 
     void microcontroller::rotate(std::string direction, float steps, int delay, nlohmann::json &response, int timeout, bool &err)
     {
-        auto msg = "rotate;" + microcontroller::format("steps", steps) + microcontroller::format("direction", direction)+ microcontroller::format("delay", delay);
-        send_message(msg, response, timeout, err);
+        nlohmann::json message;
+        message["name"]="rotate";
+        message["direction"]=direction;
+        message["steps"]=steps;
+        message["delay"]=delay;
+        send_message(message.dump(), response, timeout, err);
     }
 
     bool microcontroller::get_flag_thread_controller_alive() {

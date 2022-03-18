@@ -13,13 +13,14 @@
     'VCCLCompilerTool': { 'ExceptionHandling': 1 },
   },
       "sources": ["<!@(find ./scanner -name '*.cpp')",
-                  "<!@(ls -d ../source/*.cpp)"
+                  "<!@(ls -d ../source/*.cpp)",
+                  "<!@(find ../external/serial/src -name '*.cc')"
       # ,"<!@(ls -d scanner/*.cpp)", 
       #             "<!@(ls -d ../source/*.cpp)", "<!@(ls -d scanner/helpers/*.cpp)", "<!@(ls -d scanner/commands/*.cpp)","<!@(ls -d scanner/models/*.cpp)"
                 ],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")",
                       "<!@(find scanner/ -type d -not -path '*/\.*')",  "../include", "/usr/include/opencv4/",
-                      "/usr/include/boost/", "/usr/include/eigen3/"],
+                      "/usr/include/boost/", "/usr/include/eigen3/", "../external/serial/include"],
       "link_settings" : {
           "libraries" : ["`pkg-config --libs opencv4`",
                         "/usr/lib/libboost_thread.so",
