@@ -2,5 +2,4 @@ src/main/build/
 src/main/node_modules/
 src/main/potree/node_modules/
 src/main/potree/build/
-src/external/
 src/main/bin
